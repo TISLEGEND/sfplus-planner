@@ -40,7 +40,7 @@
     }
     for (const b of S.buildings) {
       const k = kindOf(b.c); if (!show[k] && b.c !== focusClass) continue;
-      const [x, y] = P(b.x, b.y), ppu = $('mapSurface').clientWidth / 1000 || 1, s = Math.max(k === 'logistics' ? 0.35 : 0.9, (k === 'logistics' ? 4 : 8) / ppu), hit = focusClass && b.c === focusClass;
+      const [x, y] = P(b.x, b.y), ppu = (window.SFMap ? SFMap.view.base * SFMap.view.z : $('mapSurface').clientWidth) / 1000 || 1, s = Math.max(k === 'logistics' ? 0.35 : 0.9, (k === 'logistics' ? 4 : 8) / ppu), hit = focusClass && b.c === focusClass;
       const r = el('rect', { x: x - s / 2, y: y - s / 2, width: s, height: s, fill: kinds[k][1], stroke: hit ? '#ff4d6d' : '#0b1118', 'stroke-width': hit ? 3 : 1, 'vector-effect': 'non-scaling-stroke', transform: `rotate(${b.r} ${x} ${y})` });
       r.style.cssText = 'pointer-events:auto;cursor:pointer';
       const t = el('title', {}); t.textContent = b.c + (b.recipe ? ' · ' + b.recipe : ''); r.append(t);
@@ -49,7 +49,7 @@
     }
     S.players.forEach((p, i) => {
       const [x, y] = P(p.x, p.y);
-      const c = el('circle', { cx: x, cy: y, r: Math.max(1.4, 7 / ($('mapSurface').clientWidth / 1000 || 1)), fill: '#ff4d9a', stroke: 'white', 'stroke-width': 2, 'vector-effect': 'non-scaling-stroke' });
+      const c = el('circle', { cx: x, cy: y, r: Math.max(1.4, 7 / ((window.SFMap ? SFMap.view.base * SFMap.view.z : $('mapSurface').clientWidth) / 1000 || 1)), fill: '#ff4d9a', stroke: 'white', 'stroke-width': 2, 'vector-effect': 'non-scaling-stroke' });
       c.style.pointerEvents = 'auto';
       const t = el('title', {}); t.textContent = `플레이어 ${i + 1} · X ${p.x}, Y ${p.y}`; c.append(t);
       c.onclick = e => { e.stopPropagation(); $('nodeInfo').textContent = `플레이어 ${i + 1} 마지막 위치 · X ${p.x}, Y ${p.y}, Z ${p.z} cm`; };
@@ -62,7 +62,7 @@
     const xs = list.map(p => p[0]), ys = list.map(p => p[1]);
     const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
     const span = Math.max(x1 - x0, y1 - y0, 8);
-    window.SFMap.focus((x0+x1)/2000,(y0+y1)/2000,Math.min(40,800/span));
+    window.SFMap.focus((x0+x1)/2000,(y0+y1)/2000,Math.min(16,800/span));
   }
 
   // 사이드 패널
