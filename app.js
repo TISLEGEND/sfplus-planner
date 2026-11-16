@@ -1,5 +1,5 @@
 'use strict';
-const BASE=window.SF_DATA;let D=BASE;const E=window.SFEngine,$=id=>document.getElementById(id),fmt=n=>new Intl.NumberFormat('ko-KR',{maximumFractionDigits:3}).format(n),name=id=>D.items[id]?.name||id,choices={};
+const BASE=window.SF_DATA;let D=document.getElementById('mode').value==='mod'&&BASE.sfplus?BASE.sfplus:BASE;const E=window.SFEngine,$=id=>document.getElementById(id),fmt=n=>new Intl.NumberFormat('ko-KR',{maximumFractionDigits:3}).format(n),name=id=>D.items[id]?.name||id,choices={};
 const make=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
 const option=(select,value,text)=>{const o=make('option',text);o.value=value;select.append(o);};
 const candidates=id=>D.recipes.filter(r=>r.machines.length&&r.seconds>0&&r.products.some(p=>p.item===id));
@@ -12,10 +12,10 @@ function amounts(id,values){$(id).replaceChildren();const entries=Object.entries
 function calculate(){try{$('error').textContent='';const result=E.calculate(D,$('target').value,Number($('rate').value),choices,Number($('clock').value));$('summary').replaceChildren();for(const [title,value]of [['목표 생산 /분',fmt(Number($('rate').value))],['생산 기계 합계',fmt(result.rows.reduce((s,r)=>s+r.count,0))+' 대'],['생산 전력 합계',fmt(result.power)+' MW']]){const card=make('div',undefined,'stat');card.append(make('small',title),make('b',value));$('summary').append(card);}$('tree').replaceChildren(renderTree(result.tree));amounts('raw',result.raw);amounts('byproducts',result.byproducts);$('warnings').textContent=[...(D===BASE?[]:D.meta.warnings),...result.warnings].join(' / ');}catch(e){$('error').textContent=e.message;$('tree').replaceChildren();$('summary').replaceChildren();$('raw').replaceChildren();$('byproducts').replaceChildren();$('warnings').textContent='';}}
 $('calculate').onclick=calculate;$('mode').onchange=()=>{D=$('mode').value==='mod'?BASE.sfplus:BASE;for(const k of Object.keys(choices))delete choices[k];targets();counts();updateResources();renderMap();calculate();};calculate();
 function tab(map){$('planner').hidden=map;$('mapPanel').hidden=!map;$('planTab').classList.toggle('active',!map);$('mapTab').classList.toggle('active',map);}$('planTab').onclick=()=>tab(false);$('mapTab').onclick=()=>tab(true);
-const pureNames={pure:'고순도',normal:'보통',impure:'저순도',unknown:'미확인'},nodeNames={node:'자원 노드',resourceNode:'자원 노드',frackingSatellite:'자원정 위성',geyser:'간헐천'};
+const pureNames={pure:'순수',normal:'보통',impure:'불순',unknown:'미확인'},nodeNames={node:'자원 노드',resourceNode:'자원 노드',frackingSatellite:'자원정 위성',geyser:'간헐천'};
 function updateResources(){const old=$('resource').value;$('resource').replaceChildren();option($('resource'),'','모든 자원');for(const id of [...new Set(D.nodes.map(n=>n.resource))].sort())option($('resource'),id,name(id));$('resource').value=old;$('mapScope').textContent=D===BASE?'원판 1.0 고정 노드 좌표 · 현재 게임 배치 미검증':'SF+ 자원 명칭 및 모드 에셋 배치 반영 · 실게임 활성화/무작위 배치 미검증 · 미직렬화 순도는 미확인';}updateResources();
 for(const t of [...new Set(D.nodes.map(n=>n.nodeType))])option($('nodeType'),t,nodeNames[t]||t);
-let markers=[],adding=false,pending=null;const storageKey='sfplus-planner-markers-v1';
+let markers=[],adding=false,pending=null;const storageKey='sfplus-markers-v1';
 try{const text=localStorage.getItem(storageKey);if(text)markers=E.validateMarkers(JSON.parse(text));}catch(e){$('storageStatus').textContent='저장 자료를 읽지 못했습니다. 원본 저장값은 유지했습니다. '+e.message;}
 function persist(){try{localStorage.setItem(storageKey,JSON.stringify({version:1,markers}));$('storageStatus').textContent=`공장 ${markers.length}개 · 로컬 저장 완료`;}catch(e){$('storageStatus').textContent='브라우저 저장 실패: JSON으로 내보내세요.';}renderMap();}
 function circle(x,y,r,color){r=r/Math.pow(Number($('zoom').value)||1,0.45);const c=document.createElementNS('http://www.w3.org/2000/svg','circle');for(const [k,v]of Object.entries({cx:x*1000,cy:y*1000,r,fill:color}))c.setAttribute(k,v);return c;}

@@ -62,12 +62,11 @@
     const xs = list.map(p => p[0]), ys = list.map(p => p[1]);
     const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
     const span = Math.max(x1 - x0, y1 - y0, 8);
-    $('zoom').value = Math.max(1, Math.min(Number($('zoom').max), 800 / span)); $('zoom').oninput();
-    const vp = $('mapViewport'), w = $('mapSurface').clientWidth;
-    vp.scrollTo((x0 + x1) / 2000 * w - vp.clientWidth / 2, (y0 + y1) / 2000 * w - vp.clientHeight / 2);
+    window.SFMap.focus((x0+x1)/2000,(y0+y1)/2000,Math.min(40,800/span));
   }
 
   // 사이드 패널
+  window.addEventListener('mapviewchange', draw);
   $('zoom').max = 40;
   const zoomInput = $('zoom').oninput;
   $('zoom').oninput = () => { zoomInput(); if (typeof renderMap === 'function') renderMap(); draw(); };
@@ -106,6 +105,6 @@
   $('saveBase').onchange = () => focus(($('saveBase').value === 'all' ? S.buildings : bases[$('saveBase').value]).map(b => P(b.x, b.y)));
   $('saveFocusPlayer').onclick = () => focus(S.players.map(p => P(p.x, p.y)));
   draw();
-  let first = true;
+  let first = false;
   $('mapTab').addEventListener('click', () => { if (first) { first = false; setTimeout(() => $('saveBase').onchange(), 50); } });
 })();
