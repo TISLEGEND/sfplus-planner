@@ -1,0 +1,98 @@
+/* Exact Full solver port. Sources: re/decompiled/satisfactory/a/{e,f,g}.java,
+ * modeler/d/{j,k,l,m,n,p,q,r,t}.java and d/c/{a,c,d}.java.
+ * No LP objective, floating tolerance, artificial upper bound or reference values. */
+(function(root){'use strict';
+const gcd=(a,b)=>{a=a<0n?-a:a;while(b){[a,b]=[b,a%b];}return a;};
+class R{
+ constructor(n,d=1n){n=BigInt(n);d=BigInt(d);if(d<0n){n=-n;d=-d;}if(!d)n=n<0n?-1n:n>0n?1n:0n;else{const g=gcd(n,d);if(g){n/=g;d/=g;}}this.n=n;this.d=d;}
+ static of(v){if(v instanceof R)return v;if(v==null||v===Infinity)return INF;let s=String(v).replaceAll(',','').trim();const mixed=s.match(/^(-?)(\d+)\s+(\d+)\/(\d+)$/);if(mixed){const value=R.of(mixed[2]).add(R.of(mixed[3]).div(R.of(mixed[4])));return mixed[1]?value.neg():value;}if(s.includes('/')){const [a,b]=s.split('/');return R.of(a).div(R.of(b));}if(/[eE]/.test(s)){const [a,b]=s.toLowerCase().split('e');return R.of(a).mul(+b<0?new R(1n,10n**BigInt(-b)):new R(10n**BigInt(b)));}const neg=s.startsWith('-');if(neg)s=s.slice(1);const [a,b='']=s.split('.');return new R(BigInt((a||'0')+b)*(neg?-1n:1n),10n**BigInt(b.length));}
+ add(v){v=R.of(v);if(!this.d||!v.d){if(!this.d&&!v.d)return this.n===v.n?this:NAN;return !this.d?this:v;}return new R(this.n*v.d+v.n*this.d,this.d*v.d);}
+ neg(){return new R(-this.n,this.d);}sub(v){return this.add(R.of(v).neg());}mul(v){v=R.of(v);return new R(this.n*v.n,this.d*v.d);}div(v){v=R.of(v);return new R(this.n*v.d,this.d*v.n);}cmp(v){v=R.of(v);if(!this.d||!v.d){if(!this.d&&!v.d)return this.n<v.n?-1:this.n>v.n?1:0;return !this.d?Number(this.n):-Number(v.n);}const a=this.n*v.d-v.n*this.d;return a<0n?-1:a>0n?1:0;}eq(v){return this.cmp(v)===0;}abs(){return this.n<0n?this.neg():this;}get zero(){return this.n===0n&&this.d!==0n;}get finite(){return this.d!==0n;}valueOf(){return Number(this.n)/Number(this.d);}toString(){return this.d===1n?String(this.n):`${this.n}/${this.d}`;}
+}
+const Z=new R(0),O=new R(1),INF=new R(1,0),NAN=new R(0,0);
+function format(value,options={}){const q=R.of(value);if(!q.finite)return '?';const negative=q.n<0n,abs=q.abs(),whole=abs.n/abs.d,remainder=abs.n%abs.d,sign=negative?'-':'';if(options.display==='Fraction')return sign+(!remainder?whole.toLocaleString('en-US'):(whole?whole.toLocaleString('en-US')+' ':'')+remainder+'/'+abs.d);const digits=Math.max(0,Math.min(8,options.digits??2)),scale=10n**BigInt(digits),scaled=abs.n*scale;let rounded=scaled/abs.d;const rem=scaled%abs.d;if(options.round==='Up'?!negative&&rem>0n:options.round==='Down'?negative&&rem>0n:rem*2n>=abs.d)rounded++;const a=rounded/scale,b=rounded%scale,fraction=String(b).padStart(digits,'0').replace(/0+$/,'');return (rounded&&negative?'-':'')+a.toLocaleString('en-US')+(fraction?'.'+fraction:'');}
+function rate(n,p,port,input){if(n.type!=='recipe')return R.of(port.amount);const r=p.recipe,raw=(input?r.ingredients:r.products).find(x=>x.item===port.item);return R.of(raw.exact??raw.amount).mul(60).div(r.exactSeconds??r.seconds).mul(p.machine.speed).mul(n.clockExact??n.clock).div(100);}
+function variable(cap,refs=[]){return {a:R.of(cap),b:null,c:[],d:[],refs,j:null};}
+// d/d/g: zero disconnection, parallel-link reduction, single-link contraction.
+function contract(ds){let changed=true;while(changed){changed=false;
+ for(const d of ds)if(d.a.zero&&d.ports.length){for(const e of [...d.ports]){for(const other of [...e.links]){other.links.splice(other.links.indexOf(e),1);if(!other.links.length){other.node.a=Z;remove(other);}}}d.ports=[];changed=true;}
+ for(const d of ds)for(const e of [...d.ports]){if(!e.node||e.links.length!==1)continue;const other=e.links[0];if(other.links.length>1&&other.links.every(x=>x.node===e.node)){for(const x of [...other.links])if(x!==e){e.r=e.r.add(x.r);other.links.splice(other.links.indexOf(x),1);x.links=[];remove(x);}changed=true;}}
+ for(const d of [...ds])for(const e of [...d.ports]){if(!e.node||e.links.length!==1)continue;const other=e.links[0];if(other.links.length!==1)continue;const a=e.node,b=other.node;if(a===b){if(!e.r.eq(other.r))a.a=Z;remove(e);remove(other);}else{const ratio=e.r.div(other.r),cap=b.a.div(ratio);if(cap.cmp(a.a)<0)a.a=cap;for(const ref of b.refs){ref.r=ref.r.mul(ratio);a.refs.push(ref);}for(const x of [...b.ports])if(x!==other){x.node=a;x.r=x.r.mul(ratio);a.ports.push(x);}remove(e);b.ports=[];ds.splice(ds.indexOf(b),1);}changed=true;}
+ }return ds;}
+function remove(e){if(e.node){const a=e.node.ports;a.splice(a.indexOf(e),1);e.node=null;}}
+function build(g,d,G){const ds=[],map=new Map(),edgevars=new Map();
+ for(const n of g.nodes){if(['group','missing'].includes(n.type))continue;const p=G.ports(n,d);const v=variable(p.valid?(n.unlimited?INF:R.of(n.maxExact??n.max)):Z,[{id:n.id,r:O}]);v.ports=[];map.set(n.id,{v,p,n});}
+ for(const {v,p,n}of map.values()){ds.push(v);for(const [side,input]of [['input',true],['output',false]])for(const port of p[side]){const es=g.edges.filter(e=>e[input?'to':'from']===n.id&&e.item===port.item);if(!es.length)continue;
+ const amount=rate(n,p,port,input);
+ const ep={node:v,r:amount,priority:0,input,links:[]};v.ports.push(ep);
+ for(const edge of es){let ev=edgevars.get(edge.id);if(!ev){ev=variable(INF,[{edge:edge.id,r:O}]);ev.ports=[];ds.push(ev);edgevars.set(edge.id,ev);}const peer={node:ev,r:O,priority:edge.priority??0,input:!input,links:[ep]};ev.ports.push(peer);ep.links.push(peer);}
+ }}
+ contract(ds);for(const v of ds){for(const e of v.ports)if(e.links.length>1){const k={f:v,input:e.input,a:[],busy:false};v.c.push(k);e.k=k;}}
+ for(const v of ds)for(const e of v.ports)if(e.links.length===1){const other=e.links[0],k=other.k;if(!k)throw Error('Full port contraction invariant');const m={f:v,a:k,b:e.r.div(other.r),priority:e.priority,input:e.input};v.d.push(m);k.a.push(m);}
+ return ds;}
+// d/p: capacity refinement and provenance, insertion ordered pending sets.
+function refine(vs){const singles=new Set(),multis=new Set();for(const v of vs){v.j=null;v.d.forEach(x=>singles.add(x));v.c.forEach(x=>multis.add(x));}
+ while(singles.size||multis.size){const set=singles.size?singles:multis,e=set.values().next().value;set.delete(e);let cap,parents;if(e.a instanceof Array){cap=e.a.reduce((s,m)=>s.add(m.f.a.mul(m.b)),Z);parents=e.a.map(m=>m.f);}else{cap=e.a.f.a.div(e.b);parents=[e.a.f];}const relation=new Set();for(const p of parents){relation.add(p);if(p.j)for(const q of p.j)relation.add(q);}const cmp=cap.cmp(e.f.a);if(cmp<=0&&!relation.has(e.f)){if(cmp<0){e.f.j=relation;e.f.a=cap;for(const k of e.f.c)if(k!==e)k.a.forEach(x=>singles.add(x));for(const m of e.f.d)if(m!==e)multis.add(m.a);}else if(!e.f.j)e.f.j=relation;}
+ }}
+// a/g: first nonzero pivot, stop after full rank, reverse elimination.
+function gaussian(n,rows){if(rows.length<n)return null;const a=rows.map(r=>r.slice()),p=Array(a.length).fill(-1);let rank=0,i=0;for(;i<a.length&&rank<n;i++){const r=a[i];for(let j=0;j<i;j++)if(p[j]>=0&&!r[p[j]].zero){const c=p[j],scale=r[c].div(a[j][c]);r[c]=Z;for(let k=c+1;k<=n;k++)r[k]=r[k].sub(a[j][k].mul(scale));}for(let k=0;k<n;k++)if(!r[k].zero){p[i]=k;rank++;break;}}
+ if(rank<n)return null;for(let j=i-1;j>=0;j--){const col=p[j];if(col<0)continue;const r=a[j],pivot=r[col];r[col]=O;for(let k=col+1;k<=n;k++)if(!r[k].zero)r[k]=r[k].div(pivot);for(let t=0;t<j;t++)if(p[t]>=0&&!a[t][col].zero){const scale=a[t][col];a[t][col]=Z;for(let k=col+1;k<=n;k++)a[t][k]=a[t][k].sub(r[k].mul(scale));}}
+ const x=Array(n);for(let j=0;j<a.length;j++)if(p[j]>=0)x[p[j]]=a[j][n];return x;}
+// d/n: input dependency visitation determines candidate tie order.
+function order(vs){const original=[...vs],meta=new Map(vs.map(v=>[v,{done:false,visiting:false,count:0}])),out=[];function visit(v,force){const m=meta.get(v);if(m.done)return 0;if(force)m.done=true;else{if(m.visiting){m.count++;return 1;}m.visiting=true;}let n=0;for(const e of v.d)if(e.input)n+=visit(e.a.f,force);for(const k of v.c)if(k.input)for(const e of k.a)n+=visit(e.f,force);if(force)out.push(v);else{m.visiting=false;if(m.count>0){n-=m.count;m.count=0;if(!n){visit(v,true);return 0;}}if(!n){m.done=true;out.push(v);}}return n;}original.forEach(v=>visit(v,false));return out.length===vs.length?out:original;}
+// d/t saturation path validation: 0 FULL, 1 NOT_FULL, 2 POSSIBLY_FULL.
+function status(vs){for(const v of vs){if(v.b===null||v.b.cmp(Z)<0||v.b.cmp(v.a)>0)return 1;v.state=1;}for(const v of vs)for(const k of v.c)if(!v.b.eq(k.a.reduce((s,m)=>s.add(m.f.b.mul(m.b)),Z)))return 1;
+ function walk(v,skip){if(v.visited)return v.state===1?2:v.state;v.visited=true;if(v.b.cmp(v.a)>=0)return v.state=0;
+ next:for(const k of v.c){if(k===skip)continue;k.busy=true;let state=0;try{for(const m of k.a){const s=walk(m.f,m);if(s===1)continue next;if(s===2)state=2;}return v.state=state;}finally{k.busy=false;}}
+ next:for(const m of v.d){if(m===skip||m.a.busy)continue;const flow=v.b.mul(m.b);for(const other of m.a.a){if(other===m)continue;if(m.priority===other.priority?other.f.b.mul(other.b).cmp(flow)>0:m.priority<other.priority&&other.f.b.cmp(Z)>0)continue next;}const s=walk(m.a.f,m.a);if(s!==1)return v.state=s;}return 1;}
+ let result=0;for(const v of vs)if(v.state===1){vs.forEach(x=>x.visited=false);const s=walk(v,null);if(s===1)return 1;if(s===2)result=2;}return result;}
+// d/q: lexicographic node value, then absolute deviation from equal division.
+function candidate(vs,best){let tied=true;const deviations=[];for(let i=0;i<vs.length;i++){const v=vs[i];if(tied&&best){const c=v.b.cmp(best.x[i]);if(c<0)return best;if(c>0)tied=false;}const dd=[];for(let ki=0;ki<v.c.length;ki++){const k=v.c[ki],mean=v.b.div(k.a.length),deviation=k.a.reduce((s,m)=>s.add(m.f.b.mul(m.b).sub(mean).abs()),Z);if(tied&&best){const c=best.deviations[i][ki].cmp(deviation);if(c<0)return best;if(c>0)tied=false;}dd.push(deviation);}deviations.push(dd);}return {x:vs.map(v=>v.b),deviations};}
+// d/c/c: base equalities, independent caps sorted ascending, priority candidates.
+function constraints(vs){const n=vs.length,row=()=>Array(n+1).fill(Z),base=[],caps=[],groups=[];vs.forEach((v,i)=>v.index=i);refine(vs);
+ for(const v of vs){for(const k of v.c){const r=row();r[v.index]=new R(-1);for(const m of k.a)r[m.f.index]=r[m.f.index].add(m.b);base.push(r);}if(v.j===null){const r=row();r[v.index]=O;r[n]=v.a;caps.push(r);}}
+ caps.sort((a,b)=>a[n].cmp(b[n]));
+ for(const v of vs)for(const k of v.c){const by=new Map();for(const m of k.a){let list=by.get(m.priority);if(!list)by.set(m.priority,list=[]);const at=list.findIndex(x=>x.f===m.f);if(at<0)list.push(m);else if(m.b.cmp(list[at].b)>0)list[at]=m;}const levels=[...by].sort((a,b)=>a[0]-b[0]).map(x=>x[1]),options=[];
+ for(let level=0;level<levels.length;level++){const list=levels[level];if(level){const zero=list.map(m=>{const r=row();r[m.f.index]=O;return r;});options.forEach(x=>x.push(...zero));options.push(zero);}
+ function combinations(previous,count,r,start){while(start+count<=list.length){const m=list[start],r2=r.slice();r2[m.f.index]=m.b;const next=[...previous,r2];if(count===1)options.push(next);else combinations(next,count-1,r,start+1);start++;}}
+ for(let count=list.length-1;count>0;count--)for(let start=0;start<list.length-count;start++){const r=row();r[list[start].f.index]=list[start].b.neg();combinations([],count,r,start+1);}}
+ groups.push(options);}
+ return {base,choices:[...caps.map(r=>[[r]]),...groups]};}
+function search(vs,ordered=false){if(vs.length===1){vs[0].b=vs[0].a;return true;}if(!ordered)vs=order(vs);const {base,choices}=constraints(vs),rows=Array(vs.length);let count=0;for(const row of base)rows[count++]=row;let best=null;
+ const apply=()=>{if(count<vs.length)return false;const x=gaussian(vs.length,rows);if(!x)return false;x.forEach((v,i)=>vs[i].b=v);return true;};if(apply())return true;
+ function recurse(level){for(;level<choices.length;level++)for(const option of choices[level]){for(const row of option)rows[count++]=row;if(apply()){const s=status(vs);if(s===0){best=null;return true;}if(s===2)best=candidate(vs,best);}else if(recurse(level+1))return true;count-=option.length;}return false;}
+ const ok=recurse(0);if(best){vs.forEach((v,i)=>v.b=best.x[i]);return true;}return ok;}
+// d/b/a: mark ports accepting all possible upstream flow.
+function accepts(vs){vs.forEach(v=>v.visited=false);
+ function multi(k,w,last){let left=k.a.length,total=Z;for(const m of k.a){const q=through(m,w.div(m.b),last&&--left===0);if(q===null)return null;const flow=q.mul(m.b);w=w.sub(flow);total=total.add(flow);}return total;}
+ function single(m,w,last){let count=0;for(const other of m.a.a){if(other.priority>m.priority)return Z;if(other.priority===m.priority)count++;}const ratio=m.b.mul(count),q=through(m.a,w.mul(ratio),last);return q===null?null:q.div(ratio);}
+ function through(e,w,last){const v=e.f;if(v.visited||v.a.zero||last&&v.a.cmp(w)<0)return Z;v.visited=true;let q=v.a.cmp(w)<0?v.a:w;for(const k of v.c){if(k===e)continue;const next=multi(k,q,last);if(next===null)continue;if(next.zero||last&&next.cmp(w)<0){v.visited=false;return Z;}q=next;}for(const m of v.d){if(m===e)continue;const next=single(m,q,last);if(next===null)continue;if(next.zero||last&&next.cmp(w)<0){v.visited=false;return Z;}q=next;}v.visited=false;return q.eq(w)?null:q;}
+ for(const v of vs){v.visited=true;for(const k of v.c)k.accepts=multi(k,v.a,true)===null;v.visited=false;}}
+// d/b/e,c,f: split articulation variables, rejoin cycles, solve shortest blocks
+// first and propagate changed limits to sibling blocks, preserving Java queue ties.
+function decompose(original){const all=[...original],families=[];let source,current,family;
+ function attachK(k){k.f=current;current.c.push(k);}function attachM(m){m.f=current;current.d.push(m);}
+ function merge(from,to){all.splice(all.indexOf(from),1);const i=family.indexOf(from);if(i>=0)family.splice(i,1);for(const k of from.c)k.f=to;to.c.push(...from.c);for(const m of from.d)m.f=to;to.d.push(...from.d);}
+ function visit(e){const v=e.f;if(v.visited)return;if(v.origin===current.origin){if(v===source){v.visited=true;merge(current,v);current=v;}else merge(v,current);return;}v.visited=true;for(const k of v.c)if(k!==e)walkMembers(k);for(const m of v.d)if(m!==e)walkK(m.a);}
+ function walkK(k){if(!k.accepts){if(k.f===null)attachK(k);else visit(k);}walkMembers(k);}
+ function walkMembers(k){for(const m of k.a)if(m.f===null)attachM(m);else visit(m);}
+ original.forEach((v,i)=>v.origin=i);
+ for(const v of original){if(v.c.length+v.d.length<=1)continue;source=v;const cs=v.c.splice(0),ss=v.d.splice(0);cs.forEach(k=>k.f=null);ss.forEach(m=>m.f=null);family=[];
+ const start=()=>{all.forEach(v=>v.visited=false);current=family.length?variable(source.a):source;current.origin=source.origin;if(current!==source)all.push(current);current.visited=true;family.push(current);};
+ for(const k of cs)if(k.f===null){start();attachK(k);walkMembers(k);}for(const m of ss)if(m.f===null){start();attachM(m);walkK(m.a);}if(family.length>1)families.push(family);}
+ if(!families.length)return null;
+ const blocks=components(all).map(a=>({a})),owners=new Map();for(const block of blocks)for(const v of block.a)owners.set(v,block);const originals=new Set(original),reduced=[];
+ for(const group of families){const perBlock=new Map();for(const v of group){const block=owners.get(v),old=perBlock.get(block);if(!old){perBlock.set(block,v);continue;}const keep=originals.has(v)?v:old,drop=keep===v?old:v;for(const k of drop.c)k.f=keep;keep.c.push(...drop.c);for(const m of drop.d)m.f=keep;keep.d.push(...drop.d);owners.delete(drop);block.a.splice(block.a.indexOf(drop),1);perBlock.set(block,keep);}reduced.push([...perBlock.values()]);}
+ if(blocks.length===1)return null;
+ const links=new Map();for(const group of reduced){const entries=group.map(v=>({v,block:owners.get(v)}));for(const v of group)links.set(v,entries);}
+ for(const block of blocks){block.a=order(block.a);block.a.forEach(v=>v.b=v.a);}const queue=[];
+ function push(block){queue.push(block);let i=queue.length-1;while(i>0){const parent=(i-1)>>1;if(queue[parent].a.length<=block.a.length)break;queue[i]=queue[parent];i=parent;}queue[i]=block;}
+ function pop(){const first=queue[0],last=queue.pop();if(queue.length){let i=0,half=queue.length>>1;while(i<half){let child=i*2+1;if(child+1<queue.length&&queue[child].a.length>queue[child+1].a.length)child++;if(last.a.length<=queue[child].a.length)break;queue[i]=queue[child];i=child;}queue[i]=last;}return first;}
+ blocks.forEach(push);return ()=>{while(queue.length){const block=pop(),vs=block.a;if(vs.length<=1)continue;const before=vs.map(v=>v.b),caps=vs.map(v=>v.a);if(!search(vs,true))return false;vs.forEach((v,i)=>v.a=caps[i]);for(let i=0;i<vs.length;i++){const v=vs[i],siblings=links.get(v);if(!siblings||v.b.eq(before[i]))continue;for(const entry of siblings){if(entry.v===v||v.b.eq(entry.v.b))continue;entry.v.a=v.b;if(!queue.includes(entry.block))push(entry.block);}}}return true;};}
+function fullComponent(vs){if(vs.length===1){vs[0].b=vs[0].a;return true;}refine(vs);accepts(vs);const solveBlocks=decompose(vs);return solveBlocks?solveBlocks():search(vs);}
+function components(vs){const unseen=new Set(vs),out=[];while(unseen.size){const found=new Set(),visit=v=>{if(found.has(v))return;found.add(v);unseen.delete(v);for(const m of v.d)visit(m.a.f);for(const k of v.c)for(const m of k.a)visit(m.f);};visit(unseen.values().next().value);out.push(vs.filter(v=>found.has(v)));}return out;}
+function solve(g,d,G){const vs=build(g,d,G),values=new Map(),flows=new Map();for(const component of components(vs)){if(!fullComponent(component))component.forEach(v=>v.b=null);for(const v of component)for(const ref of v.refs){const value=v.b?.mul(ref.r)??NAN;(ref.edge?flows:values).set(ref.edge||ref.id,value);}}
+ const summary={power:0,machines:0,resources:{},warnings:[]};const nodes=g.nodes.filter(n=>!['group','missing'].includes(n.type)).map(n=>{const p=G.ports(n,d),q=values.get(n.id)??NAN,used=+q;let power=0;if(n.type==='recipe'&&p.valid&&q.finite){summary.machines+=used;const count=n.autoRound?Math.ceil(used-1e-8):used,clock=n.autoRound&&count?used/count*n.clock:n.clock;power=count*p.machine.power*Math.pow(clock/100,p.machine.exponent);summary.power+=power;}if(n.type==='resource')summary.resources[n.item]=(summary.resources[n.item]||0)+used;
+ const ports=(side,input)=>p[side].map(port=>{const es=g.edges.filter(e=>e[input?'to':'from']===n.id&&e.item===port.item),flow=es.reduce((s,e)=>s.add(flows.get(e.id)??Z),Z),exactAmount=rate(n,p,port,input).mul(q),amount=+exactAmount,surplus=exactAmount.sub(flow);return {item:port.item,amount,exactAmount:exactAmount.toString(),flow:+flow,exactFlow:flow.toString(),connected:!!es.length,shortage:input&&!es.length?amount:0,surplus:input?0:Math.max(0,+surplus),exactSurplus:input?'0':surplus.toString(),exactShortage:input&&!es.length?exactAmount.toString():'0'};});return {id:n.id,used,exactUsed:q.toString(),power,valid:p.valid,unbounded:!q.finite,input:ports('input',true),output:ports('output',false)};});return {nodes,edges:g.edges.map(e=>({...e,flow:+(flows.get(e.id)??NAN),exactFlow:(flows.get(e.id)??NAN).toString()})),summary};}
+const api={R,format,gaussian,refine,status,candidate,constraints,search,fullComponent,accepts,decompose,components,build,solve};if(typeof module!=='undefined')module.exports=api;else root.ExactFull=api;
+})(globalThis);
