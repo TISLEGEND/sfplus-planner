@@ -15,7 +15,7 @@ function tab(map){$('planner').hidden=map;$('mapPanel').hidden=!map;$('planTab')
 const pureNames={pure:'순수',normal:'보통',impure:'불순',unknown:'미확인'},nodeNames={node:'자원 노드',resourceNode:'자원 노드',frackingSatellite:'자원정 위성',geyser:'간헐천'};
 function updateResources(){const old=$('resource').value;$('resource').replaceChildren();option($('resource'),'','모든 자원');for(const id of [...new Set(D.nodes.map(n=>n.resource))].sort())option($('resource'),id,name(id));$('resource').value=old;$('mapScope').textContent=D===BASE?'원판 1.0 고정 노드 좌표 · 현재 게임 배치 미검증':'SF+ 자원 명칭 및 모드 에셋 배치 반영 · 실게임 활성화/무작위 배치 미검증 · 미직렬화 순도는 미확인';}updateResources();
 for(const t of [...new Set(D.nodes.map(n=>n.nodeType))])option($('nodeType'),t,nodeNames[t]||t);
-let markers=[],adding=false,pending=null;const storageKey='sfplus-markers-v1';
+let markers=[],adding=false,pending=null;const storageKey='riri-sfplus-markers-v1';
 try{const text=localStorage.getItem(storageKey);if(text)markers=E.validateMarkers(JSON.parse(text));}catch(e){$('storageStatus').textContent='저장 자료를 읽지 못했습니다. 원본 저장값은 유지했습니다. '+e.message;}
 function persist(){try{localStorage.setItem(storageKey,JSON.stringify({version:1,markers}));$('storageStatus').textContent=`공장 ${markers.length}개 · 로컬 저장 완료`;}catch(e){$('storageStatus').textContent='브라우저 저장 실패: JSON으로 내보내세요.';}renderMap();}
 function circle(x,y,r,color){r=r/Math.pow(Number($('zoom').value)||1,0.45);const c=document.createElementNS('http://www.w3.org/2000/svg','circle');for(const [k,v]of Object.entries({cx:x*1000,cy:y*1000,r,fill:color}))c.setAttribute(k,v);return c;}
