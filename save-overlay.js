@@ -30,18 +30,19 @@
   function draw() {
     svg.replaceChildren();
     if (!on) return;
+    const Z = (window.SFMap && SFMap.view.z) || 1;
     if (showWires) for (const w of S.wires) {
       const a = P(w[0], w[1]), b = P(w[2], w[3]);
-      svg.append(el('line', { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: '#ffe06688', 'stroke-width': 1, 'vector-effect': 'non-scaling-stroke' }));
+      svg.append(el('line', { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: '#ffe06688', 'stroke-width': 1 / Z, 'vector-effect': 'non-scaling-stroke' }));
     }
     if (showBelts) for (const b of S.belts) {
       const pts = []; for (let i = 0; i < b.p.length; i += 2) pts.push(P(b.p[i], b.p[i + 1]).join(','));
-      svg.append(el('polyline', { points: pts.join(' '), fill: 'none', stroke: /Pipe/i.test(b.c) ? '#5aa9ff' : '#e9eef5', 'stroke-width': 2, 'stroke-linecap': 'round', 'vector-effect': 'non-scaling-stroke' }));
+      svg.append(el('polyline', { points: pts.join(' '), fill: 'none', stroke: /Pipe/i.test(b.c) ? '#5aa9ff' : '#e9eef5', 'stroke-width': 2 / Z, 'stroke-linecap': 'round', 'vector-effect': 'non-scaling-stroke' }));
     }
     for (const b of S.buildings) {
       const k = kindOf(b.c); if (!show[k] && b.c !== focusClass) continue;
       const [x, y] = P(b.x, b.y), ppu = (window.SFMap ? SFMap.view.base * SFMap.view.z : $('mapSurface').clientWidth) / 1000 || 1, s = Math.max(k === 'logistics' ? 0.35 : 0.9, (k === 'logistics' ? 4 : 8) / ppu), hit = focusClass && b.c === focusClass;
-      const r = el('rect', { x: x - s / 2, y: y - s / 2, width: s, height: s, fill: kinds[k][1], stroke: hit ? '#ff4d6d' : '#0b1118', 'stroke-width': hit ? 3 : 1, 'vector-effect': 'non-scaling-stroke', transform: `rotate(${b.r} ${x} ${y})` });
+      const r = el('rect', { x: x - s / 2, y: y - s / 2, width: s, height: s, fill: kinds[k][1], stroke: hit ? '#ff4d6d' : '#0b1118', 'stroke-width': (hit ? 3 : 1) / Z, 'vector-effect': 'non-scaling-stroke', transform: `rotate(${b.r} ${x} ${y})` });
       r.style.cssText = 'pointer-events:auto;cursor:pointer';
       const t = el('title', {}); t.textContent = b.c + (b.recipe ? ' · ' + b.recipe : ''); r.append(t);
       r.onclick = e => { e.stopPropagation(); info(b); };
@@ -49,7 +50,7 @@
     }
     S.players.forEach((p, i) => {
       const [x, y] = P(p.x, p.y);
-      const c = el('circle', { cx: x, cy: y, r: Math.max(1.4, 7 / ((window.SFMap ? SFMap.view.base * SFMap.view.z : $('mapSurface').clientWidth) / 1000 || 1)), fill: '#ff4d9a', stroke: 'white', 'stroke-width': 2, 'vector-effect': 'non-scaling-stroke' });
+      const c = el('circle', { cx: x, cy: y, r: Math.max(1.4, 7 / ((window.SFMap ? SFMap.view.base * SFMap.view.z : $('mapSurface').clientWidth) / 1000 || 1)), fill: '#ff4d9a', stroke: 'white', 'stroke-width': 2 / Z, 'vector-effect': 'non-scaling-stroke' });
       c.style.pointerEvents = 'auto';
       const t = el('title', {}); t.textContent = `플레이어 ${i + 1} · X ${p.x}, Y ${p.y}`; c.append(t);
       c.onclick = e => { e.stopPropagation(); $('nodeInfo').textContent = `플레이어 ${i + 1} 마지막 위치 · X ${p.x}, Y ${p.y}, Z ${p.z} cm`; };
