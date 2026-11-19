@@ -10,7 +10,7 @@
  function image(id){const img=make('img');img.alt=label(id);const url=icon(id);if(url)img.src=url;return img;}
  const EXTRAS={slug1:{name:'파워 슬러그 (파랑)',icon:'Desc_Crystal_C',color:'#2f7fd1'},slug2:{name:'파워 슬러그 (노랑)',icon:'Desc_Crystal_mk2_C',color:'#d1a72f'},slug3:{name:'파워 슬러그 (보라)',icon:'Desc_Crystal_mk3_C',color:'#9a4fd1'},sloop:{name:'소머슬루프',icon:'Desc_WAT1_C',color:'#c0392b'},mercer:{name:'머서 구체',icon:'Desc_WAT2_C',color:'#5b2c83'},droppod:{name:'추락한 착륙정',icon:'@assets/sfplus_icons/icons/TXUI_MIcon_ScanHardDrive.png',color:'#c9822b'}};
  const key=n=>n.resource+'|'+n.purity,PURS=['impure','normal','pure','unknown'],isWell=n=>n.nodeType==='frackingSatellite'||n.nodeType==='geyser';
- const unavailablePods=new Set((window.SFP_SAVE?.dropPods?.statuses||[]).filter(p=>p.hidden).map(p=>p.name));
+ const unavailablePods=new Set((window.SFP_SAVE?.dropPods?.statuses||[]).filter(p=>['destroyed-or-collected','opened','looted'].includes(p.reason)).map(p=>p.name));
  const unavailable=c=>c.t==='droppod'&&unavailablePods.has(c.n);
  const TABS=[['nodes','자원 노드',n=>!isWell(n)],['wells','자원정',isWell],['extras','수집품',null]];let tab='nodes';const extrasOn=new Set(),got=new Set(window.SFP_SAVE?.collected||[]);let hideGot=true;
  function filters(){
@@ -20,7 +20,7 @@
   const actions=make('div',undefined,'pair'),all=make('button','모두 켜기'),none=make('button','모두 끄기');actions.append(all,none);box.append(actions);
   if(tab==='extras'){const C=window.SF_COLLECTIBLES||[],groups=[...new Set(C.map(c=>c.t))];all.onclick=()=>{groups.forEach(g=>extrasOn.add(g));filters();schedule();};none.onclick=()=>{extrasOn.clear();filters();schedule();};
    if(!C.length)box.append(make('p','수집품 위치 자료가 아직 없습니다.','small muted'));
-   const hg=make('label',undefined,'resource-check'),hc=make('input');hc.type='checkbox';hc.checked=hideGot;hc.onchange=()=>{hideGot=hc.checked;filters();schedule();};hg.append(hc,make('span',`세이브에서 획득·파괴한 것 숨기기 (${C.filter(c=>got.has(c.n)).length}개)`));box.append(hg);box.append(make('p','숫자는 남은 개수/전체 개수입니다. 열렸거나 획득·파괴·부재한 착륙정은 숨기기 설정과 관계없이 제외합니다.','small muted'));
+   const hg=make('label',undefined,'resource-check'),hc=make('input');hc.type='checkbox';hc.checked=hideGot;hc.onchange=()=>{hideGot=hc.checked;filters();schedule();};hg.append(hc,make('span',`세이브에서 획득·파괴한 것 숨기기 (${C.filter(c=>got.has(c.n)).length}개)`));box.append(hg);box.append(make('p','숫자는 남은 개수/전체 개수입니다. 열림·획득·파괴가 확인된 착륙정은 숨기기 설정과 관계없이 제외합니다.','small muted'));
    for(const g of groups){const info=EXTRAS[g]||{name:g},b=make('button',undefined,'extra-btn'+(extrasOn.has(g)?' on':''));const i=make('img');i.src=icon(info.icon)||'';const tot=C.filter(c=>c.t===g).length,gn=C.filter(c=>c.t===g&&(unavailable(c)||got.has(c.n))).length;b.title=`전체 ${tot}개 중 ${gn}개 획득·파괴 → 남은 ${tot-gn}개`;b.append(i,make('span',info.name+(gn?` (−${gn})`:'')),make('i',`${tot-gn}/${tot}`));b.onclick=()=>{extrasOn.has(g)?extrasOn.delete(g):extrasOn.add(g);filters();schedule();};box.append(b);}
    return;}
   const list=D.nodes.filter(TABS.find(t=>t[0]===tab)[2]),keys=new Set(list.map(key));
