@@ -10,6 +10,8 @@
  function image(id){const img=make('img');img.alt=label(id);const url=icon(id);if(url)img.src=url;return img;}
  const EXTRAS={slug1:{name:'파워 슬러그 (파랑)',icon:'Desc_Crystal_C',color:'#2f7fd1'},slug2:{name:'파워 슬러그 (노랑)',icon:'Desc_Crystal_mk2_C',color:'#d1a72f'},slug3:{name:'파워 슬러그 (보라)',icon:'Desc_Crystal_mk3_C',color:'#9a4fd1'},sloop:{name:'소머슬루프',icon:'Desc_WAT1_C',color:'#c0392b'},mercer:{name:'머서 구체',icon:'Desc_WAT2_C',color:'#5b2c83'},droppod:{name:'추락한 착륙정',icon:'@assets/sfplus_icons/icons/TXUI_MIcon_ScanHardDrive.png',color:'#c9822b'}};
  const key=n=>n.resource+'|'+n.purity,PURS=['impure','normal','pure','unknown'],isWell=n=>n.nodeType==='frackingSatellite'||n.nodeType==='geyser';
+ const unavailablePods=new Set((window.SFP_SAVE?.dropPods?.statuses||[]).filter(p=>p.hidden).map(p=>p.name));
+ const unavailable=c=>c.t==='droppod'&&unavailablePods.has(c.n);
  const TABS=[['nodes','자원 노드',n=>!isWell(n)],['wells','자원정',isWell],['extras','수집품',null]];let tab='nodes';const extrasOn=new Set(),got=new Set(window.SFP_SAVE?.collected||[]);let hideGot=true;
  function filters(){
   if(lastData!==D){selected.clear();D.nodes.forEach(n=>selected.add(key(n)));lastData=D;}
@@ -18,8 +20,8 @@
   const actions=make('div',undefined,'pair'),all=make('button','모두 켜기'),none=make('button','모두 끄기');actions.append(all,none);box.append(actions);
   if(tab==='extras'){const C=window.SF_COLLECTIBLES||[],groups=[...new Set(C.map(c=>c.t))];all.onclick=()=>{groups.forEach(g=>extrasOn.add(g));filters();schedule();};none.onclick=()=>{extrasOn.clear();filters();schedule();};
    if(!C.length)box.append(make('p','수집품 위치 자료가 아직 없습니다.','small muted'));
-   const hg=make('label',undefined,'resource-check'),hc=make('input');hc.type='checkbox';hc.checked=hideGot;hc.onchange=()=>{hideGot=hc.checked;filters();schedule();};hg.append(hc,make('span',`세이브에서 획득·파괴한 것 숨기기 (${C.filter(c=>got.has(c.n)).length}개)`));box.append(hg);box.append(make('p','숫자는 남은 개수/전체 개수예요. 세이브에서 먹거나 부순 만큼 빠지는 게 정상입니다.','small muted'));
-   for(const g of groups){const info=EXTRAS[g]||{name:g},b=make('button',undefined,'extra-btn'+(extrasOn.has(g)?' on':''));const i=make('img');i.src=icon(info.icon)||'';const tot=C.filter(c=>c.t===g).length,gn=C.filter(c=>c.t===g&&got.has(c.n)).length;b.title=`전체 ${tot}개 중 ${gn}개 획득·파괴 → 남은 ${tot-gn}개`;b.append(i,make('span',info.name+(gn?` (−${gn})`:'')),make('i',`${tot-gn}/${tot}`));b.onclick=()=>{extrasOn.has(g)?extrasOn.delete(g):extrasOn.add(g);filters();schedule();};box.append(b);}
+   const hg=make('label',undefined,'resource-check'),hc=make('input');hc.type='checkbox';hc.checked=hideGot;hc.onchange=()=>{hideGot=hc.checked;filters();schedule();};hg.append(hc,make('span',`세이브에서 획득·파괴한 것 숨기기 (${C.filter(c=>got.has(c.n)).length}개)`));box.append(hg);box.append(make('p','숫자는 남은 개수/전체 개수입니다. 열렸거나 획득·파괴·부재한 착륙정은 숨기기 설정과 관계없이 제외합니다.','small muted'));
+   for(const g of groups){const info=EXTRAS[g]||{name:g},b=make('button',undefined,'extra-btn'+(extrasOn.has(g)?' on':''));const i=make('img');i.src=icon(info.icon)||'';const tot=C.filter(c=>c.t===g).length,gn=C.filter(c=>c.t===g&&(unavailable(c)||got.has(c.n))).length;b.title=`전체 ${tot}개 중 ${gn}개 획득·파괴 → 남은 ${tot-gn}개`;b.append(i,make('span',info.name+(gn?` (−${gn})`:'')),make('i',`${tot-gn}/${tot}`));b.onclick=()=>{extrasOn.has(g)?extrasOn.delete(g):extrasOn.add(g);filters();schedule();};box.append(b);}
    return;}
   const list=D.nodes.filter(TABS.find(t=>t[0]===tab)[2]),keys=new Set(list.map(key));
   all.onclick=()=>{keys.forEach(k=>selected.add(k));filters();schedule();};none.onclick=()=>{keys.forEach(k=>selected.delete(k));filters();schedule();};
@@ -40,7 +42,7 @@
   ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);hits=[];if(!ready)return 0;const s=18+Math.min(18,Math.log2(z)*6),W=base*z,list=visibleNodes();
   for(const o of list){const sx=x+o.p.x*W,sy=y+o.p.y*W;if(sx<-s||sy<-s*2||sx>w+s||sy>h+s)continue;pin(sx,sy,hover===o?s*1.2:s,PC[o.n.purity]||PC.unknown,icon(o.n.resource),hover===o);
    hits.push({o,sx,sy,s});}
-  const C=window.SF_COLLECTIBLES||[];if(extrasOn.size)for(const c of C){if(!extrasOn.has(c.t)||hideGot&&got.has(c.n))continue;const p=c.p||(c.p=E.project(c.x,c.y)),sx=x+p.x*W,sy=y+p.y*W;if(sx<-s||sy<-s*2||sx>w+s||sy>h+s)continue;const e=EXTRAS[c.t]||{},o={c};pin(sx,sy,s*.85,e.color||'#3d4f63',icon(e.icon),false);hits.push({o,sx,sy,s:s*.85});}
+  const C=window.SF_COLLECTIBLES||[];if(extrasOn.size)for(const c of C){if(unavailable(c)||!extrasOn.has(c.t)||hideGot&&got.has(c.n))continue;const p=c.p||(c.p=E.project(c.x,c.y)),sx=x+p.x*W,sy=y+p.y*W;if(sx<-s||sy<-s*2||sx>w+s||sy>h+s)continue;const e=EXTRAS[c.t]||{},o={c};pin(sx,sy,s*.85,e.color||'#3d4f63',icon(e.icon),false);hits.push({o,sx,sy,s:s*.85});}
   return list.length;}
  function pin(cx,cy,s,fill,url,hl){const r=s/2;ctx.beginPath();ctx.moveTo(cx-r*.5,cy+r*.75);ctx.lineTo(cx,cy+r*1.5);ctx.lineTo(cx+r*.5,cy+r*.75);ctx.closePath();ctx.fillStyle='#fff';ctx.fill();
   ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();ctx.beginPath();ctx.arc(cx,cy,r-(hl?2.5:1.6),0,Math.PI*2);ctx.fillStyle=fill;ctx.fill();

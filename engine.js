@@ -5,13 +5,14 @@ function calculate(data,target,rate,choices={},clock=100){
  if(!Number.isFinite(clock)||clock<1||clock>250)throw Error('클럭은 1~250%로 입력하세요.');
  if(!data.items[target])throw Error('알 수 없는 아이템입니다.');
  const raw={},byproducts={},rows=[],warnings=new Set();let power=0,visits=0;
- const candidates=id=>data.recipes.filter(r=>r.machines.length&&r.seconds>0&&r.products.some(p=>p.item===id));
+ const candidates=id=>data.recipes.filter(r=>r.machines.length&&(r.seconds>0||r.modularMiner)&&r.products.some(p=>p.item===id));
  function walk(id,amount,path){
   if(++visits>3000)throw Error('계산 트리가 너무 큽니다. 대체 레시피를 바꾸세요.');
   const available=candidates(id), chosen=choices[id];
   if(chosen==='raw'||(!chosen&&data.items[id]?.resource)||!available.length){if(!available.length&&!data.items[id]?.resource&&data.meta?.calculationEnabled)warnings.add('제작 경로 미확인 · 외부 공급: '+(data.items[id]?.name||id));raw[id]=(raw[id]||0)+amount;return {id,amount,raw:true,children:[]};}
   if(path.includes(id)){warnings.add('순환 레시피: '+id+' — 외부 공급으로 처리');raw[id]=(raw[id]||0)+amount;return {id,amount,raw:true,cycle:true,children:[]};}
   const recipe=available.find(r=>r.id===chosen)||available.find(r=>!r.alternate)||available[0];
+  if(recipe.modularMiner){warnings.add(recipe.name+': 채굴기 총산출·변환 수율·최종 전력 미확인, 계산 제외');const node={id,amount,recipe:recipe.id,machine:recipe.machines[0],count:null,power:null,unknown:true,children:[]};rows.push(node);return node;}
   const product=recipe.products.find(p=>p.item===id);if(!(product.amount>0))throw Error('제품 수량 오류');
   const machine=data.buildings[recipe.machines[0]], cycles=amount/product.amount;
   const count=cycles*recipe.seconds/(60*machine.speed*(clock/100));
@@ -24,7 +25,7 @@ function calculate(data,target,rate,choices={},clock=100){
   for(const p of recipe.ingredients)node.children.push(walk(p.item,p.amount*cycles,[...path,id]));
   return node;
  }
- const tree=walk(target,rate,[]);return {tree,rows,raw,byproducts,power,warnings:[...warnings]};
+ const tree=walk(target,rate,[]);return {tree,rows,raw,byproducts,power:rows.some(r=>r.unknown)?null:power,hasUnknown:rows.some(r=>r.unknown),warnings:[...warnings]};
 }
 function validateMarkers(value){
  if(!value||value.version!==1||!Array.isArray(value.markers)||value.markers.length>2000)throw Error('지원하지 않는 마커 파일입니다.');

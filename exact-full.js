@@ -11,7 +11,7 @@ class R{
 }
 const Z=new R(0),O=new R(1),INF=new R(1,0),NAN=new R(0,0);
 function format(value,options={}){const q=R.of(value);if(!q.finite)return '?';const negative=q.n<0n,abs=q.abs(),whole=abs.n/abs.d,remainder=abs.n%abs.d,sign=negative?'-':'';if(options.display==='Fraction')return sign+(!remainder?whole.toLocaleString('en-US'):(whole?whole.toLocaleString('en-US')+' ':'')+remainder+'/'+abs.d);const digits=Math.max(0,Math.min(8,options.digits??2)),scale=10n**BigInt(digits),scaled=abs.n*scale;let rounded=scaled/abs.d;const rem=scaled%abs.d;if(options.round==='Up'?!negative&&rem>0n:options.round==='Down'?negative&&rem>0n:rem*2n>=abs.d)rounded++;const a=rounded/scale,b=rounded%scale,fraction=String(b).padStart(digits,'0').replace(/0+$/,'');return (rounded&&negative?'-':'')+a.toLocaleString('en-US')+(fraction?'.'+fraction:'');}
-function rate(n,p,port,input){if(n.type!=='recipe')return R.of(port.amount);const r=p.recipe,raw=(input?r.ingredients:r.products).find(x=>x.item===port.item);return R.of(raw.exact??raw.amount).mul(60).div(r.exactSeconds??r.seconds).mul(p.machine.speed).mul(n.clockExact??n.clock).div(100);}
+function rate(n,p,port,input){if(p.unknown)return Z;if(n.type!=='recipe')return R.of(port.amount);const r=p.recipe,raw=(input?r.ingredients:r.products).find(x=>x.item===port.item);return R.of(raw.exact??raw.amount).mul(60).div(r.exactSeconds??r.seconds).mul(p.machine.speed).mul(n.clockExact??n.clock).div(100);}
 function variable(cap,refs=[]){return {a:R.of(cap),b:null,c:[],d:[],refs,j:null};}
 // d/d/g: zero disconnection, parallel-link reduction, single-link contraction.
 function contract(ds){let changed=true;while(changed){changed=false;
