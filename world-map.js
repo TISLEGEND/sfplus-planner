@@ -12,11 +12,11 @@
  const key=n=>n.resource+'|'+n.purity,PURS=['impure','normal','pure','unknown'],isWell=n=>n.nodeType==='frackingSatellite'||n.nodeType==='geyser';
  const unavailablePods=new Set((window.SFP_SAVE?.dropPods?.statuses||[]).filter(p=>['destroyed-or-collected','opened','looted'].includes(p.reason)).map(p=>p.name));
  const unavailable=c=>c.t==='droppod'&&unavailablePods.has(c.n);
- const TABS=[['nodes','자원 노드',n=>!isWell(n)],['wells','자원정',isWell],['extras','수집품',null]];let tab='nodes';const extrasOn=new Set(),got=new Set(window.SFP_SAVE?.collected||[]);let hideGot=true;
+ const TABS=[['nodes','자원 노드',n=>!isWell(n)],['wells','자원정',isWell],['extras','수집품',null]];let tab='nodes';let extrasInitialized=false;const extrasOn=new Set(),got=new Set(window.SFP_SAVE?.collected||[]);let hideGot=true;
  function filters(){
   if(lastData!==D){selected.clear();D.nodes.forEach(n=>selected.add(key(n)));lastData=D;}
   const box=$('resourceFilters');box.replaceChildren();const tabs=make('div',undefined,'layer-tabs');
-  for(const [id,name]of TABS){const b=make('button',name);if(id===tab)b.className='on';b.onclick=()=>{tab=id;filters();};tabs.append(b);}box.append(tabs);
+  for(const [id,name]of TABS){const b=make('button',name);if(id===tab)b.className='on';b.onclick=()=>{tab=id;if(tab==='extras'&&!extrasInitialized){(window.SF_COLLECTIBLES||[]).forEach(c=>extrasOn.add(c.t));extrasInitialized=true;}filters();schedule();};tabs.append(b);}box.append(tabs);
   const actions=make('div',undefined,'pair'),all=make('button','모두 켜기'),none=make('button','모두 끄기');actions.append(all,none);box.append(actions);
   if(tab==='extras'){const C=window.SF_COLLECTIBLES||[],groups=[...new Set(C.map(c=>c.t))];all.onclick=()=>{groups.forEach(g=>extrasOn.add(g));filters();schedule();};none.onclick=()=>{extrasOn.clear();filters();schedule();};
    if(!C.length)box.append(make('p','수집품 위치 자료가 아직 없습니다.','small muted'));
@@ -42,8 +42,8 @@
   ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);hits=[];if(!ready)return 0;const s=18+Math.min(18,Math.log2(z)*6),W=base*z,list=visibleNodes();
   for(const o of list){const sx=x+o.p.x*W,sy=y+o.p.y*W;if(sx<-s||sy<-s*2||sx>w+s||sy>h+s)continue;pin(sx,sy,hover===o?s*1.2:s,PC[o.n.purity]||PC.unknown,icon(o.n.resource),hover===o);
    hits.push({o,sx,sy,s});}
-  const C=window.SF_COLLECTIBLES||[];if(extrasOn.size)for(const c of C){if(unavailable(c)||!extrasOn.has(c.t)||hideGot&&got.has(c.n))continue;const p=c.p||(c.p=E.project(c.x,c.y)),sx=x+p.x*W,sy=y+p.y*W;if(sx<-s||sy<-s*2||sx>w+s||sy>h+s)continue;const e=EXTRAS[c.t]||{},o={c};pin(sx,sy,s*.85,e.color||'#3d4f63',icon(e.icon),false);hits.push({o,sx,sy,s:s*.85});}
-  return list.length;}
+  let extraCount=0;const C=window.SF_COLLECTIBLES||[];if(extrasOn.size)for(const c of C){if(unavailable(c)||!extrasOn.has(c.t)||hideGot&&got.has(c.n))continue;extraCount++;const p=c.p||(c.p=E.project(c.x,c.y)),sx=x+p.x*W,sy=y+p.y*W;if(sx<-s||sy<-s*2||sx>w+s||sy>h+s)continue;const e=EXTRAS[c.t]||{},o={c};pin(sx,sy,s*.85,e.color||'#3d4f63',icon(e.icon),false);hits.push({o,sx,sy,s:s*.85});}
+  return list.length+extraCount;}
  function pin(cx,cy,s,fill,url,hl){const r=s/2;ctx.beginPath();ctx.moveTo(cx-r*.5,cy+r*.75);ctx.lineTo(cx,cy+r*1.5);ctx.lineTo(cx+r*.5,cy+r*.75);ctx.closePath();ctx.fillStyle='#fff';ctx.fill();
   ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();ctx.beginPath();ctx.arc(cx,cy,r-(hl?2.5:1.6),0,Math.PI*2);ctx.fillStyle=fill;ctx.fill();
   if(url){const i=img(url);if(i.complete&&i.naturalWidth)ctx.drawImage(i,cx-r*.72,cy-r*.72,r*1.44,r*1.44);}else{ctx.fillStyle='#fff';ctx.font=`${r}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('♨',cx,cy);}}
@@ -65,7 +65,8 @@
  vp.addEventListener('click',e=>{if(adding||moved||e.target.closest('aside,.map-controls,button'))return;const r=vp.getBoundingClientRect(),o=hitAt(e.clientX-r.left,e.clientY-r.top);if(!o)return;e.stopPropagation();if(o.c){popup(`${EXTRAS[o.c.t]?.name||o.c.t}${got.has(o.c.n)?' · 획득함':''} · X ${o.c.x}, Y ${o.c.y}, Z ${o.c.z} cm · 원판 게임 맵 배치 (SF+ 변경·획득 여부 미반영)`);return;}const n=o.n;popup(`${label(n.resource)} · ${pureNames[n.purity]||n.purity} · ${nodeNames[n.nodeType]||n.nodeType} · X ${n.x}, Y ${n.y}, Z ${n.z} cm · ${n.fromSave?'세이브 '+(window.SFP_SAVE?.file||'')+' 실제 자원·순도':n.source==='mod-level-asset'?'모드 에셋 배치 · 활성화 미검증':'원판 1.0 참고 좌표'}`);});
  circle=function(px,py,r,color){return svg('circle',{cx:px*1000,cy:py*1000,r:r*1000/(base*Math.sqrt(z)),fill:color});};
  function apply(){surface.style.width=base+'px';surface.style.transform=`translate(${x}px,${y}px) scale(${z})`;$('zoom').value=z;schedule();clearTimeout(settle);settle=setTimeout(()=>{renderMap();window.dispatchEvent(new Event('mapviewchange'));},180);}
- function fit(){cancelAnimationFrame(animation);if(!vp.clientWidth)return;base=Math.min(vp.clientWidth,vp.clientHeight);z=1;x=(vp.clientWidth-base)/2;y=(vp.clientHeight-base)/2;ready=true;apply();}
+ let viewWidth=0,viewHeight=0;
+ function fit(){cancelAnimationFrame(animation);if(!vp.clientWidth)return;viewWidth=vp.clientWidth;viewHeight=vp.clientHeight;base=Math.min(viewWidth,viewHeight);z=1;x=(vp.clientWidth-base)/2;y=(vp.clientHeight-base)/2;ready=true;apply();}
  function zoom(next,px=vp.clientWidth/2,py=vp.clientHeight/2){next=Math.max(1,Math.min(16,next));x=px-(px-x)*next/z;y=py-(py-y)*next/z;z=next;apply();}
  window.SFMap={focus(px,py,scale){if(!ready)fit();z=Math.max(1,Math.min(16,scale));x=vp.clientWidth/2-px*base*z;y=vp.clientHeight/2-py*base*z;apply();},get view(){return {x,y,z,base};}};
  vp.addEventListener('wheel',e=>{e.preventDefault();const r=vp.getBoundingClientRect(),px=e.clientX-r.left,py=e.clientY-r.top;cancelAnimationFrame(animation);targetZoom=Math.max(1,Math.min(16,z*Math.exp(-Math.max(-120,Math.min(120,e.deltaY))*.004)));function step(){const next=z+(targetZoom-z)*.3;zoom(Math.abs(next-targetZoom)<.002?targetZoom:next,px,py);if(z!==targetZoom)animation=requestAnimationFrame(step);}step();},{passive:false});
@@ -77,7 +78,7 @@
  $('zoom').oninput=()=>zoom(Number($('zoom').value));
  $('toggleFilters').onclick=()=>{const collapsed=$('mapPanel').classList.toggle('filters-collapsed');$('toggleFilters').setAttribute('aria-expanded',!collapsed);};
  vp.addEventListener('keydown',e=>{if(e.target!==vp)return;const step=70;if(e.key==='+'||e.key==='=')zoom(z*1.5);else if(e.key==='-')zoom(z/1.5);else if(e.key==='Home')fit();else if(e.key.startsWith('Arrow')){e.preventDefault();x+=e.key==='ArrowLeft'?step:e.key==='ArrowRight'?-step:0;y+=e.key==='ArrowUp'?step:e.key==='ArrowDown'?-step:0;apply();}});
- $('mapTab').addEventListener('click',()=>{if(!ready)fit();});new ResizeObserver(()=>{if(!vp.clientWidth)return;if(!ready)fit();else{const old=base;const next=Math.min(vp.clientWidth,vp.clientHeight);x=vp.clientWidth/2-(vp.clientWidth/2-x)*next/old;y=vp.clientHeight/2-(vp.clientHeight/2-y)*next/old;base=next;apply();}}).observe(vp);
+ $('mapTab').addEventListener('click',()=>{if(!ready)fit();});new ResizeObserver(()=>{if(!vp.clientWidth)return;if(!ready)fit();else{const width=vp.clientWidth,height=vp.clientHeight;if(!height)return;const next=Math.min(width,height);/* Preserve the world point at the OLD viewport centre. */x=width/2-(viewWidth/2-x)*next/base;y=height/2-(viewHeight/2-y)*next/base;base=next;viewWidth=width;viewHeight=height;apply();}}).observe(vp);
  window.addEventListener('load',()=>{filters();renderMap();});
  filters();renderMap();
 })();
