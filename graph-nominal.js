@@ -18,7 +18,7 @@ function solve(g,d,G,E,L){
  // These endpoints have no recipe input/output ratios. Storage and filtering
  // keep their existing transport semantics, priorities and port identities.
  const routed=E.solve({...g,nodes,edges},d,G),flows=new Map(routed.edges.map(e=>[e.id,e]));
- if(routed.edges.some(e=>!Number.isFinite(e.flow)||e.flow<0))throw Error('정격 연결 유량 계산 실패: 그래프를 확인하세요.');
+ if(routed.edges.some(e=>!Number.isFinite(e.flow)||e.flow<0))throw Error('연결된 곳으로 보내는 양을 계산하지 못했습니다. 연결 상태와 입력한 수량을 확인하세요.');
  const summary={power:0,machines:0,resources:{},warnings:[]};
  const result=base.map(n=>{
   if(L.is(n))return routed.nodes.find(r=>r.id===n.id);
