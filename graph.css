@@ -16,3 +16,6 @@ body.graph-active>nav{display:none!important}
 .g-node-building{font:11px sans-serif;color:#8fa3a8;margin-top:2px}
 
 .g-port-index{position:absolute;top:-8px;right:-7px;background:#173537;color:#fff;border-radius:8px;padding:0 3px;font-size:10px}.g-storage-state{position:relative;display:block;height:18px;line-height:18px;text-align:center;color:#ffc885;font-size:11px;background:var(--g-band);pointer-events:none}.graph-node:has(.g-storage-state) .g-value{font-size:12px}
+
+/* Keep local deficit/surplus badges clear of the connection flow labels. */
+#graphPanel.graph-nominal .g-port-number{transform:translateY(-15px);background:var(--g-bg);padding:1px 3px;border-radius:3px;white-space:nowrap}
