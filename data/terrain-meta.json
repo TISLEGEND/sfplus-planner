@@ -1,0 +1,15 @@
+{
+ "source": "Satisfactory 게임 pak 랜드스케이프 높이맵(Persistent_Level 월드 파티션 셀 125개, 조각 2289개) CUE4Parse 추출",
+ "originM": [
+  -3048.0,
+  -3048.0
+ ],
+ "stepM": 4,
+ "width": 1779,
+ "height": 1525,
+ "decode": "z_m = ((R*256+G) - 32768) / 128 + 1 ; B=0 이면 지형 없음",
+ "zRangeM": [
+  -255.0,
+  253.7421875
+ ]
+}
