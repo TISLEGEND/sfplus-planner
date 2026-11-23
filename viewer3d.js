@@ -1,0 +1,84 @@
+import * as T from './viewer3d-vendor/three.module.js';
+const $=id=>document.getElementById(id),status=$('status'),vp=$('viewport');
+const renderer=new T.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setClearColor(0x102330);vp.prepend(renderer.domElement);
+const scene=new T.Scene();scene.background=new T.Color(0x102330);
+scene.add(new T.HemisphereLight(0xf0f9ff,0x65707a,2.5));const sun=new T.DirectionalLight(0xffffff,2);sun.position.set(-400,-500,900);scene.add(sun);
+const camera=new T.PerspectiveCamera(55,1,.15,18000);camera.up.set(0,0,1);
+const root=new T.Group();scene.add(root);const box=new T.BoxGeometry(1,1,1),cylinder=new T.CylinderGeometry(1,1,1,6,1),dummy=new T.Object3D();
+let catalogue,data,selected=null,low=false,yaw=0,pitch=-.6,needsRender=true,last=performance.now(),frameMs=0,drag=null,worker=null,loadId=0;
+const keys=new Set(),materials=new Map(),pickables=[],drawStats={buildings:0,curves:0,wires:0};let ground,nodesMesh,selectionMesh;
+const color={foundation:0x78909e,wall:0xaabec6,production:0x5bd9b0,power:0xffc663,storage:0xbd94ec,miner:0xed9653,other:0x72a7c7,belt:0xe7c58b,pipe:0x52b9ec,wire:0xe3ca5e};
+const kind=c=>/Foundation(?!Passthrough)|Ramp|Roof/i.test(c)?'foundation':/Wall|Glass|Window/i.test(c)?'wall':/Miner|Mining|Extractor|WaterPump|Fracking|OilPump|Drill/i.test(c)?'miner':/Generator|PowerStorage|Battery/i.test(c)?'power':/Storage|Container|Sink|Dimensional/i.test(c)?'storage':/Constructor|Assembler|Manufacturer|Smelter|Foundry|Refinery|Blender|Packager|Crusher|Cleaner|Collider|Converter|Encoder|Mixer|Furnace|Press|Kiln|Machine/i.test(c)?'production':'other';
+const v=a=>new T.Vector3(...a).multiplyScalar(.01);
+const names=c=>catalogue.names[c]||({foundation:'토대·경사로',wall:'벽·유리',production:'생산 기계',power:'발전 설비',storage:'보관 설비',miner:'채굴·추출 설비',other:'구조물'}[kind(c)]+' · '+c);
+const mat=k=>{if(!materials.has(k))materials.set(k,new T.MeshStandardMaterial({color:color[k]||0x79bc91,roughness:.78,metalness:.12}));return materials.get(k);};
+function aim(){camera.lookAt(camera.position.clone().add(new T.Vector3(Math.cos(yaw)*Math.cos(pitch),Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch))));needsRender=true;}
+function lookAt(p){const d=p.clone().sub(camera.position).normalize();yaw=Math.atan2(d.y,d.x);pitch=Math.asin(d.z);aim();}
+function dimMatrix(b){const d=b.dim,center=d.min.map((x,i)=>(x+d.max[i])/200),size=d.min.map((x,i)=>Math.max(.02,(d.max[i]-x)/100));
+ const m=new T.Matrix4().compose(v(b.p),new T.Quaternion(...b.q).normalize(),new T.Vector3(...b.s));
+ return m.multiply(new T.Matrix4().compose(new T.Vector3(...center),new T.Quaternion(),new T.Vector3(...size)));
+}
+function heightRange(){return [$('minHeight').value===''?-Infinity:Number($('minHeight').value),$('maxHeight').value===''?Infinity:Number($('maxHeight').value)];}
+function buildingBounds(b){const bounds=new T.Box3(new T.Vector3(-.5,-.5,-.5),new T.Vector3(.5,.5,.5));return bounds.applyMatrix4(dimMatrix(b));}
+function visible(b){const [min,max]=heightRange();if($('walls').checked&&kind(b.c)==='wall')return false;const bounds=buildingBounds(b);return bounds.max.z>=min&&bounds.min.z<=max;}
+function curveVisible(points){const [min,max]=heightRange();return Math.max(...points.map(p=>p[2]/100))>=min&&Math.min(...points.map(p=>p[2]/100))<=max;}
+function clear(){while(root.children.length){const o=root.children[0];root.remove(o);if(o.geometry!==box&&o.geometry!==cylinder)o.geometry?.dispose();o.dispose?.();}pickables.length=0;}
+function instantiate(groups,geometry){for(const [key,list] of groups){const mesh=new T.InstancedMesh(geometry,mat(key.split('|')[0]),list.length);mesh.userData.records=[];list.forEach((item,i)=>{mesh.setMatrixAt(i,item.matrix);mesh.userData.records.push(item.record);});mesh.computeBoundingBox();mesh.computeBoundingSphere();root.add(mesh);pickables.push(mesh);}}
+const groupAdd=(groups,key,entry)=>{if(!groups.has(key))groups.set(key,[]);groups.get(key).push(entry);};
+const cell=p=>Math.floor(p[0]/25000)+','+Math.floor(p[1]/25000);
+function bezierSamples(points,n){const result=[];for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],p0=v(a.p),p1=v(a.p.map((x,j)=>x+a.l[j]/3)),p2=v(b.p.map((x,j)=>x-b.a[j]/3)),p3=v(b.p);const curve=new T.CubicBezierCurve3(p0,p1,p2,p3);const length=curve.getLength(),steps=Math.max(n,Math.min(96,Math.ceil(length/(low?10:4))));for(let j=i===1?0:1;j<=steps;j++)result.push(curve.getPoint(j/steps));}return result;}
+function rebuild(){if(!data)return;clear();const groups=new Map(),tubes=new Map();drawStats.buildings=drawStats.curves=drawStats.wires=0;
+ for(const b of data.buildings){if(!visible(b))continue;groupAdd(groups,kind(b.c)+'|'+cell(b.p),{matrix:dimMatrix(b),record:b});drawStats.buildings++;}
+ instantiate(groups,box);
+ for(const c of data.curves){const points=bezierSamples(c.points,low?4:12);if(!curveVisible(points.map(p=>[p.x*100,p.y*100,p.z*100])))continue;
+ const k=/Pipe|Hypertube/i.test(c.c)?'pipe':'belt',radius=k==='pipe'?.33:.42;
+ for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],d=b.clone().sub(a),len=d.length();if(len<.001)continue;
+ const q=new T.Quaternion().setFromUnitVectors(new T.Vector3(0,1,0),d.normalize());const m=new T.Matrix4().compose(a.clone().add(b).multiplyScalar(.5),q,new T.Vector3(radius,len,radius));
+ groupAdd(tubes,k+'|'+cell([a.x*100,a.y*100]),{matrix:m,record:c});}drawStats.curves++;}
+ instantiate(tubes,cylinder);
+ if($('wires').checked){const verts=[];for(const w of data.wires){if(!curveVisible(w.points))continue;for(let i=1;i<w.points.length;i++)verts.push(...v(w.points[i-1]).toArray(),...v(w.points[i]).toArray());drawStats.wires++;}
+ const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(verts,3));const line=new T.LineSegments(geo,wireMaterial);line.computeLineDistances();root.add(line);}
+ renderList();if(selected&&!visibleSelection(selected)){$('info').hidden=true;selectionMesh.visible=false;}else if(selected)highlight(selected);
+ needsRender=true;
+}
+const wireMaterial=new T.LineBasicMaterial({color:color.wire});
+function visibleSelection(b){return b.dim?visible(b):curveVisible(b.points.map(x=>x.p));}
+function renderList(){const term=$('search').value.toLocaleLowerCase(),all=data.buildings.filter(b=>visible(b)&&`${names(b.c)} ${b.c} ${b.p.join(' ')}`.toLocaleLowerCase().includes(term));$('listCount').textContent=`${all.length.toLocaleString()}개 · 최대 100개 표시`;const frag=document.createDocumentFragment();
+ for(const b of all.slice(0,100)){const button=document.createElement('button');button.textContent=names(b.c);const sub=document.createElement('small');sub.textContent=`${b.p.map(x=>(x/100).toFixed(1)).join(' / ')} m · 이 건물로 이동`;button.append(sub);button.onclick=()=>{showInfo(b);focusBuilding(b);};frag.append(button);}$('buildingList').replaceChildren(frag);}
+function highlight(b){selectionMesh.visible=true;if(b.dim)selectionMesh.matrix.copy(dimMatrix(b));else{const bb=new T.Box3().setFromPoints(b.points.map(x=>v(x.p))),size=bb.getSize(new T.Vector3()).max(new T.Vector3(1,1,1));selectionMesh.matrix.compose(bb.getCenter(new T.Vector3()),new T.Quaternion(),size);}selectionMesh.matrixWorldNeedsUpdate=true;needsRender=true;}
+function showInfo(b){selected=b;const q=new T.Quaternion(...b.q).normalize(),e=new T.Euler().setFromQuaternion(q,'ZYX');$('infoName').textContent=names(b.c);
+ $('infoBody').textContent=[`클래스: ${b.c}`,`좌표 X/Y/Z (m): ${b.p.map(x=>(x/100).toFixed(2)).join(' / ')}`,`회전 X/Y/Z (°): ${[e.x,e.y,e.z].map(T.MathUtils.radToDeg).map(x=>x.toFixed(2)).join(' / ')}`,`쿼터니언: ${b.q.map(x=>x.toFixed(4)).join(', ')}`,`배율: ${b.s.join(' / ')}`,`레시피: ${b.recipe?(catalogue.names[b.recipe]||b.recipe):'세이브 기록 없음'}`,`클럭: ${b.clock==null?'세이브 기록 없음':b.clock.toFixed(1)+'%'}`,b.dim?`상자 크기 (m): ${b.dim.max.map((x,i)=>((x-b.dim.min[i])*Math.abs(b.s[i])/100).toFixed(2)).join(' × ')}\n치수: ${b.dim.quality}\n근거: ${b.dim.source}`:'스플라인: 세이브 원본 탄젠트 · 관 반경은 표시용 추정'].join('\n');$('info').hidden=false;highlight(b);}
+function focusBuilding(b){const target=b.dim?buildingBounds(b).getCenter(new T.Vector3()):v(b.p),span=b.dim?buildingBounds(b).getSize(new T.Vector3()).length():30;camera.position.copy(target).add(new T.Vector3(-1,-1,.8).normalize().multiplyScalar(Math.max(18,span*1.8)));lookAt(target);vp.focus();}
+function home(){const districts=new Map();for(const b of data.buildings){if(kind(b.c)!=='production')continue;const k=cell(b.p);if(!districts.has(k))districts.set(k,[]);districts.get(k).push(b);}const dense=[...districts.values()].sort((a,b)=>b.length-a.length)[0];const anchor=dense?dense.reduce((p,b)=>p.add(v(b.p)),new T.Vector3()).multiplyScalar(1/dense.length):null;const list=data.buildings.filter(b=>!anchor||v(b.p).distanceTo(anchor)<180).map(b=>v(b.p));if(!list.length){camera.position.set(0,-400,300);lookAt(new T.Vector3());return;}const bounds=new T.Box3().setFromPoints(list),center=bounds.getCenter(new T.Vector3()),span=Math.max(80,bounds.getSize(new T.Vector3()).length());camera.position.copy(center).add(new T.Vector3(-.8,-1,.8).normalize().multiplyScalar(span*1.1));lookAt(center);}
+function setupData(next){data=next;selected=null;$('info').hidden=true;selectionMesh.visible=false;$('saveName').textContent=data.file;$('badge').textContent=`${data.name} · 보기 전용`;
+ const missing=data.buildings.filter(b=>/estimate/.test(b.dim.quality)).length;status.textContent=`건물 ${data.buildings.length.toLocaleString()} · 운송 ${data.curves.length} · 전선 ${data.wires.length}\n추정 치수 ${missing}개 · 지형 높이 미적용`;
+ rebuildNodes();rebuild();home();window.viewer3d.ready=true;}
+function rebuildNodes(){if(nodesMesh){scene.remove(nodesMesh);nodesMesh.dispose();nodesMesh.geometry.dispose();nodesMesh.material.dispose();}
+ const nodes=catalogue.nodes.map(n=>({...n}));for(const s of data.nodes){const i=nodes.findIndex(n=>Math.hypot(n.x-s.x,n.y-s.y)<500);if(i>=0)nodes[i]={...nodes[i],...s,resource:s.resource||nodes[i].resource};else nodes.push(s);}
+ const geometry=new T.OctahedronGeometry(2.4,0);nodesMesh=new T.InstancedMesh(geometry,new T.MeshBasicMaterial(),nodes.length);nodes.forEach((n,i)=>{dummy.position.set(n.x/100,n.y/100,n.z/100+3);dummy.scale.setScalar(1);dummy.quaternion.identity();dummy.updateMatrix();nodesMesh.setMatrixAt(i,dummy.matrix);const h=[...(n.resource||'unknown')].reduce((a,c)=>a+c.charCodeAt(0),0);nodesMesh.setColorAt(i,new T.Color().setHSL((h%360)/360,.65,.6));});nodesMesh.computeBoundingSphere();nodesMesh.visible=$('nodes').checked;scene.add(nodesMesh);}
+function resize(){renderer.setSize(vp.clientWidth,vp.clientHeight);camera.aspect=vp.clientWidth/vp.clientHeight;camera.updateProjectionMatrix();needsRender=true;}new ResizeObserver(resize).observe(vp);
+function tick(now){requestAnimationFrame(tick);const dt=Math.min(.05,(now-last)/1000);last=now;frameMs=frameMs*.9+dt*1000*.1;
+ if(keys.size){const speed=(keys.has('ShiftLeft')||keys.has('ShiftRight')?180:45)*dt,forward=new T.Vector3(Math.cos(yaw),Math.sin(yaw),0),right=new T.Vector3(Math.sin(yaw),-Math.cos(yaw),0);if(keys.has('KeyW'))camera.position.addScaledVector(forward,speed);if(keys.has('KeyS'))camera.position.addScaledVector(forward,-speed);if(keys.has('KeyD'))camera.position.addScaledVector(right,speed);if(keys.has('KeyA'))camera.position.addScaledVector(right,-speed);if(keys.has('KeyE'))camera.position.z+=speed;if(keys.has('KeyQ'))camera.position.z-=speed;needsRender=true;}
+ if(needsRender){renderer.render(scene,camera);needsRender=false;$('stats').textContent=`${low?'저사양':'표준'} · ${drawStats.buildings} 건물 · ${renderer.info.render.calls} draw calls · ${renderer.info.render.triangles.toLocaleString()} triangles · Z ${camera.position.z.toFixed(1)} m`;}}
+vp.addEventListener('keydown',e=>{if(['KeyW','KeyA','KeyS','KeyD','KeyQ','KeyE','ShiftLeft','ShiftRight'].includes(e.code)){keys.add(e.code);e.preventDefault();}});window.addEventListener('keyup',e=>keys.delete(e.code));window.addEventListener('blur',()=>{keys.clear();drag=null;});vp.addEventListener('blur',()=>keys.clear());
+vp.addEventListener('contextmenu',e=>e.preventDefault());renderer.domElement.addEventListener('pointerdown',e=>{vp.focus();if(e.button===2){drag={x:e.clientX,y:e.clientY};renderer.domElement.setPointerCapture(e.pointerId);}});
+renderer.domElement.addEventListener('pointermove',e=>{if(!drag)return;yaw-=(e.clientX-drag.x)*.004;pitch=Math.max(-1.53,Math.min(1.53,pitch+(e.clientY-drag.y)*.004));drag={x:e.clientX,y:e.clientY};aim();});renderer.domElement.addEventListener('pointerup',()=>drag=null);renderer.domElement.addEventListener('pointercancel',()=>drag=null);
+renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();const dir=new T.Vector3();camera.getWorldDirection(dir);camera.position.addScaledVector(dir,-Math.sign(e.deltaY)*Math.max(3,Math.min(80,camera.position.distanceTo(selected?v(selected.p):new T.Vector3())*.07)));needsRender=true;},{passive:false});
+const ray=new T.Raycaster();renderer.domElement.addEventListener('click',e=>{if(e.button!==0)return;const r=renderer.domElement.getBoundingClientRect();ray.setFromCamera(new T.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1),camera);const hit=ray.intersectObjects(pickables,false)[0];if(hit)showInfo(hit.object.userData.records[hit.instanceId]);});
+$('home').onclick=()=>{home();vp.focus();};$('goSelected').onclick=()=>{if(selected)focusBuilding(selected);};$('closeInfo').onclick=()=>{$('info').hidden=true;selectionMesh.visible=false;selected=null;needsRender=true;};
+for(const id of ['walls','minHeight','maxHeight','wires'])$(id).addEventListener('change',()=>{const [min,max]=heightRange();if(min>max){status.textContent='최저 높이는 최고 높이 이하여야 합니다.';return;}rebuild();});
+$('nodes').onchange=()=>{nodesMesh.visible=$('nodes').checked;needsRender=true;};$('map').onchange=()=>{ground.visible=$('map').checked;needsRender=true;};$('search').oninput=renderList;
+$('low').onclick=()=>{low=!low;$('low').textContent=`저사양 모드: ${low?'켬':'끔'}`;$('low').setAttribute('aria-pressed',String(low));renderer.setPixelRatio(low?Math.min(devicePixelRatio,1):Math.min(devicePixelRatio,1.5));resize();rebuild();};
+async function loadFile(file){if(!file||!file.name.toLowerCase().endsWith('.sav')){status.textContent='.sav 파일을 선택하세요.';return;}if(file.size>128*1024*1024){status.textContent='128MB 이하 세이브를 사용하세요.';return;}
+ const id=++loadId;worker?.terminate();status.textContent='브라우저 안에서 세이브를 읽는 중…';const bytes=await file.arrayBuffer();if(id!==loadId)return;
+ worker=new Worker('./viewer3d-vendor/save-parser.worker.js');const timer=setTimeout(()=>{if(id===loadId){worker.terminate();worker=null;status.textContent='파싱 시간이 초과되었습니다. 이전 화면을 유지합니다.';}},60000);
+ worker.onmessage=({data:msg})=>{if(id!==loadId)return;if(msg.result){clearTimeout(timer);worker.terminate();worker=null;setupData(msg.result);}else if(msg.error){clearTimeout(timer);worker.terminate();worker=null;status.textContent=msg.error;}else if(msg.progress!=null)status.textContent=`로컬 파싱 ${Math.min(100,Math.round(msg.progress*100))}%`;};worker.onerror=e=>{clearTimeout(timer);worker?.terminate();worker=null;status.textContent='파서 오류: '+e.message;};worker.postMessage({name:file.name,bytes,dimensions:catalogue.dimensions},[bytes]);}
+$('saveFile').onchange=()=>loadFile($('saveFile').files[0]);let dragDepth=0;window.addEventListener('dragenter',e=>{e.preventDefault();dragDepth++;$('drop').hidden=false;});window.addEventListener('dragover',e=>e.preventDefault());window.addEventListener('dragleave',()=>{if(--dragDepth<=0){dragDepth=0;$('drop').hidden=true;}});window.addEventListener('drop',e=>{e.preventDefault();dragDepth=0;$('drop').hidden=true;loadFile(e.dataTransfer.files[0]);});
+window.viewer3d={ready:false,get data(){return data;},get camera(){return camera;},get renderer(){return renderer;},get stats(){return {...drawStats,calls:renderer.info.render.calls,triangles:renderer.info.render.triangles};},focusBuilding,showInfo,dimMatrix,bezierSamples,loadFile};
+try{[catalogue,data]=await Promise.all(['data/viewer3d-catalogue.json','data/viewer3d-save.json'].map(async url=>{const r=await fetch(url);if(!r.ok)throw Error(`${url}: ${r.status}`);return r.json();}));
+ const texture=new T.TextureLoader().load('assets/world-map.webp',()=>needsRender=true);texture.colorSpace=T.SRGBColorSpace;texture.wrapT=T.RepeatWrapping;texture.repeat.y=-1;texture.offset.y=1;
+ ground=new T.Mesh(new T.PlaneGeometry(7500,7500),new T.MeshBasicMaterial({map:texture,side:T.DoubleSide,color:0xa5b8ae}));ground.position.set(503,-0,-150);scene.add(ground);
+ selectionMesh=new T.Mesh(box,new T.MeshBasicMaterial({color:0xfff1a1,wireframe:true,depthTest:false}));selectionMesh.matrixAutoUpdate=false;selectionMesh.renderOrder=100;selectionMesh.visible=false;scene.add(selectionMesh);
+ setupData(data);resize();requestAnimationFrame(tick);
+}catch(e){status.textContent='뷰어 초기화 실패: '+e.message;}

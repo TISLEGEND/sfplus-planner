@@ -53,7 +53,7 @@
   if(L>3){const n=2**L,W=base*z,a=v=>Math.max(0,Math.min(n-1,Math.floor(v*n)));const x0=a(-x/W),x1=a((vp.clientWidth-x)/W),y0=a(-y/W),y1=a((vp.clientHeight-y)/W);
    for(let i=x0;i<=x1;i++)for(let j=y0;j<=y1;j++){const k=`${L}/${i}/${j}`;keep.add(k);if(!tileImgs.has(k)){const t=document.createElement('img');t.draggable=false;t.decoding='async';t.src=`assets/tiles/${k}.webp`;t.style.cssText=`left:${i/n*100}%;top:${j/n*100}%;width:${100/n+.03}%;height:${100/n+.03}%`;tileImgs.set(k,t);tiles.append(t);}}}
   for(const [k,t]of tileImgs)if(!keep.has(k)){t.remove();tileImgs.delete(k);}}
- let frame=0,settle=0;function schedule(){if(frame)return;frame=requestAnimationFrame(()=>{frame=0;const c=drawNodes();$('nodeCount').textContent=`${c} 지점`;updateTiles();});}
+ let frame=0,settle=0;function schedule(){if(frame)return;frame=requestAnimationFrame(()=>{frame=0;const c=drawNodes();window.SFSaveOverlay?.draw();$('nodeCount').textContent=`${c} 지점`;updateTiles();});}
  renderMap=function(){
   if(lastData!==D)filters();const layer=$('nodeLayer');layer.replaceChildren();
   for(const m of markers){const c=circle(m.x,m.y,7,'#ff825b');c.onclick=e=>{if(adding||moved)return;e.stopPropagation();editMarker(m);};const title=svg('title',{});title.textContent=m.name;c.append(title);layer.append(c);}
@@ -68,7 +68,7 @@
  let viewWidth=0,viewHeight=0;
  function fit(){cancelAnimationFrame(animation);if(!vp.clientWidth)return;viewWidth=vp.clientWidth;viewHeight=vp.clientHeight;base=Math.min(viewWidth,viewHeight);z=1;x=(vp.clientWidth-base)/2;y=(vp.clientHeight-base)/2;ready=true;apply();}
  function zoom(next,px=vp.clientWidth/2,py=vp.clientHeight/2){next=Math.max(1,Math.min(16,next));x=px-(px-x)*next/z;y=py-(py-y)*next/z;z=next;apply();}
- window.SFMap={focus(px,py,scale){if(!ready)fit();z=Math.max(1,Math.min(16,scale));x=vp.clientWidth/2-px*base*z;y=vp.clientHeight/2-py*base*z;apply();},get view(){return {x,y,z,base};}};
+ window.SFMap={focus(px,py,scale){if(!ready)fit();z=Math.max(1,Math.min(16,scale));x=vp.clientWidth/2-px*base*z;y=vp.clientHeight/2-py*base*z;apply();},hitAt, get view(){return {x,y,z,base};}};
  vp.addEventListener('wheel',e=>{e.preventDefault();const r=vp.getBoundingClientRect(),px=e.clientX-r.left,py=e.clientY-r.top;cancelAnimationFrame(animation);targetZoom=Math.max(1,Math.min(16,z*Math.exp(-Math.max(-120,Math.min(120,e.deltaY))*.004)));function step(){const next=z+(targetZoom-z)*.3;zoom(Math.abs(next-targetZoom)<.002?targetZoom:next,px,py);if(z!==targetZoom)animation=requestAnimationFrame(step);}step();},{passive:false});
  vp.addEventListener('pointerdown',e=>{if(e.button!==0||e.target.closest('button'))return;drag={id:e.pointerId,x:e.clientX,y:e.clientY,ox:x,oy:y};moved=false;});
  vp.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)>4){moved=true;vp.setPointerCapture(e.pointerId);vp.classList.add('dragging');x=drag.ox+dx;y=drag.oy+dy;apply();}});
