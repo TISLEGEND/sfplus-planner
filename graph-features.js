@@ -35,31 +35,35 @@ function decoratePower(out,g,d){
  out.summary.knownGeneratedPower=generated;
  out.summary.netPower=unknown||out.summary.powerUnknown?null:generated-out.summary.power;
 }
-const usable=(d,r)=>r.seconds>0&&r.durationVerified!==false&&d.buildings[r.machines[0]]&&!r.modularMiner;
+const U=typeof module!=='undefined'?require('./unlocks'):root.SFUnlocks;
+const usable=(d,r)=>(U?.allowed(r)??true)&&r.seconds>0&&r.durationVerified!==false&&d.buildings[r.machines[0]]&&!r.modularMiner;
 // 원자재까지 이어지는 단계 수(작을수록 가까움). 이어지지 않는 아이템은 없음. 이 단계가 줄어드는 레시피만 고르면 순환 없이 끝난다.
 const levelCache=new WeakMap();
-function levels(d){if(levelCache.has(d))return levelCache.get(d);const L=new Map();for(const [id,i]of Object.entries(d.items))if(i.resource)L.set(id,0);
+function levels(d){if(!U?.get().enabled&&levelCache.has(d))return levelCache.get(d);const L=new Map();for(const [id,i]of Object.entries(d.items))if(i.resource)L.set(id,0);
  const rs=d.recipes.filter(r=>usable(d,r));for(let round=1,changed=true;changed&&round<200;round++){changed=false;const add=[];for(const r of rs)if(r.ingredients.every(p=>L.has(p.item)&&L.get(p.item)<round))for(const p of r.products)if(p.amount>0&&!L.has(p.item))add.push(p.item);for(const id of add)if(!L.has(id)){L.set(id,round);changed=true;}}
- levelCache.set(d,L);return L;}
+ if(!U?.get().enabled)levelCache.set(d,L);return L;}
 const recipeLevel=(d,r)=>{const L=levels(d);let m=0;for(const p of r.ingredients){if(!L.has(p.item))return Infinity;m=Math.max(m,L.get(p.item));}return m+1;};
 // 원자재까지 이어지는 레시피 → 기본 레시피 → 짧은 경로 순.
 function candidates(d,item){const lv=new Map(),f=r=>{if(!lv.has(r))lv.set(r,recipeLevel(d,r));return lv.get(r);};
  return d.recipes.filter(r=>r.products.some(p=>p.item===item&&p.amount>0)&&usable(d,r)).sort((a,b)=>Number(f(a)===Infinity)-Number(f(b)===Infinity)||Number(!!a.alternate)-Number(!!b.alternate)||f(a)-f(b)||a.id.localeCompare(b.id));}
 // 순환을 만들 때 대신 쓰는, 원자재 쪽으로 반드시 한 단계 가까워지는 레시피.
 function shortest(d,item){const L=levels(d),own=L.has(item)?L.get(item):Infinity;return candidates(d,item).filter(r=>recipeLevel(d,r)<=own).sort((a,b)=>Number(!!a.alternate)-Number(!!b.alternate)||recipeLevel(d,a)-recipeLevel(d,b)||a.id.localeCompare(b.id))[0];}
-function selected(d,item,choices){const all=candidates(d,item);if(choices[item]&&!all.some(r=>r.id===choices[item]))throw Error('선택한 레시피를 사용할 수 없습니다: '+item);return all.find(r=>r.id===choices[item])||all[0];}
+function selected(d,item,choices){const all=candidates(d,item);if(choices[item])U?.assertRecipe(d.recipes.find(r=>r.id===choices[item]));if(choices[item]&&!all.some(r=>r.id===choices[item]))throw Error('선택한 레시피를 사용할 수 없습니다: '+item);return all.find(r=>r.id===choices[item])||all[0];}
 // 제작 레시피가 없는 아이템(예: 슬러그·생물 산출물)은 공급 노드로 끝낸다.
 const external=(d,item,choices={})=>d.items[item]?.resource||!candidates(d,item).length||(!levels(d).has(item)&&!choices[item]);
 function reachable(d,item,choices={}){const seen=new Set(),rows=[];function walk(id){if(seen.has(id)||d.items[id]?.resource)return;seen.add(id);const options=candidates(d,id),r=selected(d,id,choices);rows.push({item:id,options,recipe:r?.id});r?.ingredients.forEach(p=>walk(p.item));}walk(item);return rows;}
+const levelsForUnlock=(d,id)=>levels(d).has(id);
 function expand(d,item,amount,choices={},G,E){
  if(!d.items[item]||!Number.isFinite(amount)||amount<=0||amount>1e6)throw Error('목표량은 0 초과 1,000,000 이하로 입력하세요.');
  const nodes=[],edges=[],warnings=[],R=E.R,levels=new Map(),plan=new Map(),order=[],state=new Map();
  // 같은 아이템은 노드 하나로 합친다: 아이템별 레시피를 정하고(순환 검사), 위상 순서로 필요량을 모은다.
  function visit(id,path){
+  if(U?.get().enabled&&!d.items[id]?.resource&&!candidates(d,id).length){const msg=U.missing(d,id);if(msg)throw Error(msg);}
   if(state.get(id)===2)return;if(state.get(id)===1)throw Error('순환 레시피 감지: '+[...path.slice(path.indexOf(id)),id].map(i=>d.items[i]?.name||i).join(' → ')+' · 다른 레시피를 선택하세요.');
   if(path.length>100||plan.size>=499)throw Error('자동 전개 크기 제한 (노드 500개 / 깊이 100). 목표나 레시피를 바꾸세요.');
   if(!path.length&&!d.items[id].resource&&!candidates(d,id).length)throw Error('만들 수 있는 제작 경로 없음: '+d.items[id].name);
   state.set(id,1);
+  if(U?.get().enabled&&!levelsForUnlock(d,id)){const msg=U.blocked(d,id);if(msg)throw Error(msg);}
   const supply=path.length?external(d,id,choices):d.items[id].resource||!candidates(d,id).length;
   if(supply){plan.set(id,null);if(!d.items[id].resource)warnings.push(d.items[id].name+': 원자재까지 이어지는 레시피가 없어 공급 노드로 처리');}
   else {

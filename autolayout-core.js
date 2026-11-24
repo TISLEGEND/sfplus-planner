@@ -12,6 +12,7 @@ function build(plan,options={}){
 }
 function generate(plan,options={}){
  if(!plan?.graph&&!plan?.result?.tree)throw Error('생산 플래너에서 유효한 계획을 먼저 계산하세요.');
+ const U=typeof module!=='undefined'?require('./unlocks'):root.SFUnlocks;for(const n of (plan.graphLayout?.groups||plan.result?.rows||[])){const r=plan.data.recipes.find(r=>r.id===n.recipe);U?.assertRecipe(r);}
  const {data,result,clock=100}=plan, groups=[],sources=[],sinks=[],edges=[],byKey=new Map(),raw=new Map();
  const recipes=new Map(data.recipes.map(r=>[r.id,r]));
  function link(from,to,item,amount){const old=edges.find(e=>e.from===from&&e.to===to&&e.item===item);if(old)old.amount+=amount;else edges.push({id:'ae'+edges.length,from,to,item,amount});}
@@ -166,6 +167,7 @@ function generate(plan,options={}){
  for(const e of edges.filter(e=>byId.get(e.to).byproduct)){const g=byId.get(e.from),b=byId.get(e.to).badge;e.ax=b.x+12;e.bx=e.ax;e.fromY=g.y+g.h+2;e.toY=b.y;e.points=[{x:e.ax,y:g.y+g.h},{x:e.ax,y:b.y}];}
  const buses=[...busMap.values()];
 
+ for(const e of edges)Object.defineProperty(e,'transport',{value:U?.capacity(data,e.item,e.amount,plan.dataMode),enumerable:false});
  const layout={groups,sources,sinks,nodes,edges,width:maxWidth+30,height:y,clock,total,buses,graph:!!plan.graph,dataMode:plan.dataMode};
  return options.presentation?present(layout):layout;
 }
@@ -242,7 +244,11 @@ function toGraph(layout,plan,graphData=plan.data){
  const nodes=layout.nodes.map(n=>{const r=n.kind==='group'?mappedRecipe(n):null;return {id:n.id,type:n.kind==='group'?'recipe':n.kind==='source'?'resource':'sink',x:n.x,y:n.y,max:r?r.count:n.amount,clock:plan.clock||100,...(r?{recipe:r.id,modular:n.modular}:{item:item(n.item)})};});
  return {version:1,calculationVersion:1,dataMode:plan.dataMode,solver:'Nominal',nodes,edges:layout.edges.map(e=>({id:e.id,from:e.from,to:e.to,item:item(e.item)})),view:{zoom:1,x:30,y:30},warnings:['자동 배치에서 가져옴: 묶음별 생산 노드입니다. 분배·합류 도형은 편집기에 넘기지 않습니다.']};
 }
-const api={build,toGraph,point,BW,BH,STEP,MAX_BUILDINGS};if(typeof module!=='undefined')module.exports=api;else root.SFAutolayout=api;
+// Maximum actual load on a drawn shared segment, without summing disjoint branches.
+function segmentFlow(points,edges,item){const a=points[0],b=points.at(-1),vertical=Math.abs(a.x-b.x)<1e-6,axis=vertical?'y':'x',fixed=vertical?'x':'y',lo=Math.min(a[axis],b[axis]),hi=Math.max(a[axis],b[axis]),events=[];
+ for(const e of edges.filter(e=>e.item===item)){const ranges=[];for(let i=1;i<e.points.length;i++){const c=e.points[i-1],d=e.points[i];if(Math.abs(c[fixed]-a[fixed])>1e-5||Math.abs(d[fixed]-a[fixed])>1e-5)continue;const from=Math.max(lo,Math.min(c[axis],d[axis])),to=Math.min(hi,Math.max(c[axis],d[axis]));if(to-from>1e-6)ranges.push([from,to]);}ranges.sort((a,b)=>a[0]-b[0]);const merged=[];for(const r of ranges){const last=merged.at(-1);if(last&&r[0]<=last[1]+1e-6)last[1]=Math.max(last[1],r[1]);else merged.push(r);}for(const [from,to]of merged)events.push([from,e.amount],[to,-e.amount]);}
+ events.sort((a,b)=>a[0]-b[0]);let load=0,max=0;for(let i=0;i<events.length;){const x=events[i][0];do{load+=events[i++][1];}while(i<events.length&&Math.abs(events[i][0]-x)<1e-6);max=Math.max(max,load);}return max;}
+const api={segmentFlow,build,toGraph,point,BW,BH,STEP,MAX_BUILDINGS};if(typeof module!=='undefined')module.exports=api;else root.SFAutolayout=api;
 })(typeof window==='undefined'?globalThis:window);
 
 

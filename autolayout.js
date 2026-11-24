@@ -29,6 +29,7 @@ function path(points,item,parent,amount){
  // Repeated chevrons make direction visible along the entire conveyor, even at fit scale.
  for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],len=Math.abs(b.x-a.x)+Math.abs(b.y-a.y);if(len<25)continue;const dx=Math.sign(b.x-a.x),dy=Math.sign(b.y-a.y);for(let s=32;s<len-8;s+=100){const x=a.x+dx*s,y=a.y+dy*s;svg('path',{d:`M${x-dx*4-dy*3},${y-dy*4+dx*3} L${x},${y} L${x-dx*4+dy*3},${y-dy*4-dx*3}`,class:'al-chevron'},parent);}}
  window.SFAutolayoutColors.decorate(p,points,item,amount??networkRate??0,amount===undefined);
+ const limit=window.SFUnlocks?.capacity(plan.data,item,amount??networkRate??0,plan.dataMode);if(limit?.over){p.style.stroke='#ff5252';p.classList.add('transport-over');const mid=points[Math.floor(points.length/2)];if(amount!==undefined)text(window.SFTransportBadges.caption(limit,fmt(amount)),mid.x+4,mid.y-10,{class:'transport-warning',fill:'#ff5252','data-anchor-x':mid.x+4,'data-anchor-y':mid.y-10},parent);svg('title',{},p).textContent=limit.label;}
  return p;
 }
 function dot(x,y,item,output,parent,share){if(networkProjection)({x,y}=Core.point(networkProjection,{x,y}));const cls=fluid(item)?'PipelineJunction_Cross':output?'ConveyorAttachmentMerger':'ConveyorAttachmentSplitter',a=window.SFTopdown?.classes[cls],w=14,h=14;const e=svg('image',{href:a?.src||'assets/autolayout-topdown/'+(fluid(item)?'pipe':output?'merger':'splitter')+'.svg',x:x-w/2,y:y-h/2,width:w,height:h,class:'al-junction'},parent);const t=svg('title',{},e);t.textContent=(fluid(item)?'파이프 접합':output?'머저':'스플리터')+(share?' · '+share:'');}
@@ -42,8 +43,8 @@ function network(g,e,index,output,parent){
  const outerY=output?g.y+g.h:g.y;
  if(mode==='manifold'){
   const ys=rail;const far=leaves.at(-1).x;
-  if(output){leaves.forEach(p=>{path([p,{x:p.x,y:ys}],item,parent);dot(p.x,ys,item,true,parent);});path([{x:leaves[0].x,y:ys},{x:far,y:ys},{x:port,y:ys},{x:port,y:outerY}],item,parent);}
-  else{path([{x:port,y:outerY},{x:port,y:ys},{x:leaves[0].x,y:ys}],item,parent);path([{x:leaves[0].x,y:ys},{x:far,y:ys}],item,parent);leaves.forEach(p=>{dot(p.x,ys,item,false,parent);path([{x:p.x,y:ys},p],item,parent);});}
+  if(output){leaves.forEach(p=>{path([p,{x:p.x,y:ys}],item,parent,e.amount/leaves.length);dot(p.x,ys,item,true,parent);});path([{x:leaves[0].x,y:ys},{x:far,y:ys},{x:port,y:ys},{x:port,y:outerY}],item,parent);}
+  else{path([{x:port,y:outerY},{x:port,y:ys},{x:leaves[0].x,y:ys}],item,parent);path([{x:leaves[0].x,y:ys},{x:far,y:ys}],item,parent);leaves.forEach(p=>{dot(p.x,ys,item,false,parent);path([{x:p.x,y:ys},p],item,parent,e.amount/leaves.length);});}
  }else{
   const realCount=leaves.length;
   if(!output)while(leaves.length<g.treeLeaves)leaves.push({x:g.boxes.at(-1).x+g.bodyW+12+(leaves.length-g.installed)*16,y:body});
@@ -59,6 +60,7 @@ function network(g,e,index,output,parent){
 }
 function transform(){$('alWorld').style.transform=`translate(${view.x}px,${view.y}px) scale(${view.z})`;$('alZoom').value=Math.round(view.z*100)+'%';window.SFAutolayoutColors.updateLabels(view.z);
  // CSS transforms scale the outer SVG too; compensate in world units.
+ window.SFTransportBadges.layout();
  $('alWorld').querySelectorAll('.al-wire[data-flow],.al-bridge').forEach(e=>e.style.strokeWidth=((e.classList.contains('al-bridge-cut')?8:e.classList.contains('al-flow-active')?4.5:3.5)/view.z)+'px');
  $('alWorld').querySelectorAll('.al-bridge[data-x]').forEach(e=>{const x=+e.dataset.x,y=+e.dataset.y,r=Math.min(6/view.z,+e.dataset.room);e.setAttribute('d',`M${x-r},${y} Q${x},${y-r*1.8} ${x+r},${y}`);});}
 function fit(){if(!layout||!$('alViewport').clientWidth)return;const v=$('alViewport');view.z=Math.min(1.5,(v.clientWidth-40)/layout.width,(v.clientHeight-40)/layout.height);view.z=Math.max(.005,view.z);view.x=(v.clientWidth-layout.width*view.z)/2;view.y=(v.clientHeight-layout.height*view.z)/2;transform();}
@@ -70,10 +72,10 @@ function select(id,focus=false){selected=id;const g=layout?.groups.find(g=>g.id=
 function draw(){
  if(layout&&plan)layout=Core.build(plan,{input:$('alInput').value,output:$('alOutput').value,overrides:Object.fromEntries(overrides),sizes:sizes(),presentation:true});
  window.SFAutolayoutColors.start({edges:layout?.edges||[],fluid,name,fmt,unit,itemIcon});
- const world=$('alWorld');world.replaceChildren();$('alList').replaceChildren();if(!layout)return;
+ const world=$('alWorld');world.replaceChildren();$('alList').replaceChildren();let warnings=$('alTransportWarnings');if(!warnings){warnings=document.createElement('details');warnings.id='alTransportWarnings';$('alSidebar').prepend(warnings);}warnings.replaceChildren();if(!layout)return;const exceeded=layout.edges.map(e=>({e,limit:window.SFUnlocks?.capacity(plan.data,e.item,e.amount,plan.dataMode)})).filter(x=>x.limit?.over);warnings.hidden=!exceeded.length;if(exceeded.length){const summary=document.createElement('summary');summary.textContent='운송 한계 초과 ('+exceeded.length+')';warnings.append(summary);for(const {e,limit}of exceeded){const row=document.createElement('p');row.className='transport-over';row.textContent=name(e.item)+' · '+fmt(e.amount)+unit(e.item)+' · '+limit.label;warnings.append(row);}}
  world.setAttribute('width',layout.width);world.setAttribute('height',layout.height);
  const defs=svg('defs');for(const [id,cls] of [['alBeltTexture','ConveyorBeltMk1'],['alPipeTexture','Pipeline']]){const a=window.SFTopdown?.classes[cls];if(a){const p=svg('pattern',{id,patternUnits:'userSpaceOnUse',width:18,height:10,y:-5},defs);svg('image',{href:a.src,x:0,y:0,width:18,height:10,preserveAspectRatio:'none'},p);}}for(const [k,c]of [['Belt','#ffa64c'],['Pipe','#62b9ff']]){const marker=svg('marker',{id:'alArrow'+k,viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:5,markerHeight:5,orient:'auto-start-reverse',markerUnits:'userSpaceOnUse'},defs);svg('path',{d:'M 0 0 L 10 5 L 0 10 Z',fill:c},marker);}
- for(const bus of layout.buses){for(const points of bus.paths)path(points,bus.item,undefined,bus.amount);window.SFAutolayoutColors.label(bus.item,bus.start);}
+ for(const bus of layout.buses){for(const points of bus.paths)path(points,bus.item,undefined,Core.segmentFlow(points,layout.edges,bus.item));window.SFAutolayoutColors.label(bus.item,bus.start);}
  // Draw a raised horizontal jump over each distinct cross-item crossing.
  const segments=layout.buses.flatMap(bus=>bus.paths.map(p=>({item:bus.item,a:p[0],b:p[1]}))),bridges=new Set();
  for(const h of segments.filter(s=>s.a.y===s.b.y))for(const v of segments.filter(s=>s.a.x===s.b.x)){
@@ -105,6 +107,7 @@ function draw(){
 function regenerate(){try{plan=graphPlan||window.SFPlannerPlan;layout=Core.build(plan,{sizes:sizes(),presentation:true});overrides.clear();selected=null;dirty=false;$('alEmpty').textContent='';$('alEdit').disabled=false;draw();fit();}catch(e){layout=null;selected=null;draw();$('alSelection').hidden=true;$('alEmpty').textContent=e.message;$('alStatus').textContent='배치 생성 실패';$('alEdit').disabled=true;}}
 tab.onclick=()=>{for(const id of ['planner','mapPanel','graphPanel'])$(id).hidden=true;for(const id of ['planTab','mapTab','graphTab'])$(id).classList.remove('active');panel.hidden=false;tab.classList.add('active');document.body.classList.remove('map-fullscreen','graph-active');if(dirty||!layout)regenerate();else requestAnimationFrame(transform);};
 for(const id of ['planTab','mapTab','graphTab'])$(id).addEventListener('click',()=>{panel.hidden=true;tab.classList.remove('active');});
+window.addEventListener('sfunlockschange',e=>{if(graphPlan||e.detail?.graphLayout)graphPlan=window.RiriLayoutGraph.fromGraph(window.RiriGraph.get(),window.RiriGraph.data(),window.RiriGraph.result());dirty=true;if(!panel.hidden)regenerate();});
 window.addEventListener('sfplannerchange',()=>{graphPlan=null;dirty=true;if(!panel.hidden)regenerate();});
 $('alRegenerate').onclick=regenerate;for(const id of ['alInput','alOutput'])$(id).onchange=draw;
 for(const [id,key]of [['alGroupInput','input'],['alGroupOutput','output']])$(id).onchange=()=>{if(!selected)return;overrides.set(selected,{...overrides.get(selected),[key]:$(id).value});draw();};

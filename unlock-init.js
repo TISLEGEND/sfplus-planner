@@ -1,0 +1,1 @@
+(function(){try{const saved=JSON.parse(localStorage.getItem('riri-unlocks-v1')||'null');SFUnlocks.set(saved||{profile:window.SFP_SAVE?.unlocks||null});}catch{SFUnlocks.set({profile:window.SFP_SAVE?.unlocks||null});}})();
