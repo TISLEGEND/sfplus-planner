@@ -105,7 +105,7 @@ async function encode(graph,base){
 }
 async function decode(hash){
  if(!hash.startsWith('#riri-v1=')||hash.length>MAX_URL)throw Error('지원하지 않는 공유 링크 또는 크기 초과');
- const payload=hash.slice(9);if(!/^[A-Za-z0-9_-]+$/.test(payload))throw Error('공유 링크 인코딩 오류');
+ const payload=hash.slice(9).split('&')[0];if(!/^[A-Za-z0-9_-]+$/.test(payload))throw Error('공유 링크 인코딩 오류');
  const binary=atob(payload.replaceAll('-','+').replaceAll('_','/')),bytes=Uint8Array.from(binary,c=>c.charCodeAt(0));
  return JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(await transform(bytes,false)));
 }

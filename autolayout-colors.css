@@ -1,0 +1,19 @@
+/* Calm item lanes. Flow emphasis is reserved for interaction. */
+#alWorld .al-wire[data-flow]{stroke-width:1.5;stroke-opacity:.65;transition:stroke-opacity .12s}
+#alWorld .al-flow-hit{fill:none;stroke:transparent;stroke-width:12;pointer-events:stroke;cursor:help}
+#alWorld .al-flow-label{pointer-events:none}
+#alWorld .al-flow-label rect{fill:#151e23;stroke-width:.7}
+#alWorld .al-flow-label text{font-size:12px;fill:#c6cdd0;font-weight:500}
+#alWorld .al-flow-dim{opacity:.14}
+#alWorld .al-wire.al-flow-active,#alWorld .al-wire.al-flow-selected{stroke-opacity:1;stroke-width:2.8;filter:drop-shadow(0 0 2px #e2ac5e66)}
+#alFlowLegend{font-size:11px;margin-bottom:16px;max-height:210px;overflow:auto;color:#9caeb7}
+#alFlowLegend summary{cursor:pointer;padding:6px 0}
+#alFlowLegend div{padding:5px;cursor:help}
+#alFlowLegend span{display:inline-block;width:18px;height:3px;margin-right:7px;vertical-align:middle}
+
+/* Screen-space strokes stay readable at overview scale. */
+#alWorld .al-wire[data-flow]{stroke-width:3.5px;stroke-opacity:1;vector-effect:none}
+#alWorld .al-wire.al-flow-active,#alWorld .al-wire.al-flow-selected{stroke-width:4.5px}
+#alWorld .al-flow-hit{vector-effect:none}
+#alWorld .al-bridge{fill:none;stroke-width:3.5px;vector-effect:none;pointer-events:none}
+#alWorld .al-bridge-cut{stroke:#101619;stroke-width:8px}

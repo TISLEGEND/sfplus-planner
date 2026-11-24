@@ -1,0 +1,44 @@
+#layoutPanel[hidden]{display:none!important}#layoutPanel{margin:0;max-width:none;height:calc(100vh - 160px);min-height:540px;background:#11191e;color:#e4ebef;display:flex;flex-direction:column}#alToolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 16px;background:#202c34;border-bottom:1px solid #3a4a54}#alToolbar label{display:flex;align-items:center;gap:6px;margin:0;font-size:12px}#alToolbar select{width:auto;padding:7px;font-size:12px}#alToolbar button{padding:7px 12px}#alToolbar strong{color:#ffb45e}#alWorkspace{display:flex;flex:1;min-height:0}#alSidebar{width:256px;flex-shrink:0;padding:12px;background:#1b252d;border-right:1px solid #3a4a54;overflow:auto}#alSidebar h2{font-size:15px;margin:0 0 10px}#alList button{width:100%;text-align:left;margin-bottom:7px;padding:11px;background:#25323c;color:#e8eef3;border:1px solid #3c4c57;border-radius:6px}#alList button.selected{border-color:#ffb45e;background:#3f3529}#alList small{display:block;color:#9bb4c1;margin-top:5px}#alViewport{position:relative;flex:1;min-width:0;overflow:hidden;touch-action:none;cursor:grab;background-color:#10181c;background-image:linear-gradient(#52626c1c 1px,transparent 1px),linear-gradient(90deg,#52626c1c 1px,transparent 1px);background-size:20px 20px}#alViewport:active{cursor:grabbing}#alWorld{position:absolute;left:0;top:0;transform-origin:0 0;overflow:visible}#alWorld text{font-family:system-ui,sans-serif;fill:#dce7ee;font-size:12px;pointer-events:none}#alWorld .al-title{font-size:15px;font-weight:700}#alWorld .al-group{fill:#23303a66;stroke:#55717f;stroke-dasharray:7 5;stroke-width:1}#alWorld .selected .al-group{stroke:#ffd17b;stroke-width:3}#alWorld .al-machine{fill:#202e37;stroke:#516570}#alWorld .al-util{fill:#ffd17b;font-weight:bold}#alWorld .al-wire{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}#alWorld .al-junction{stroke:#10181c;stroke-width:2}#alWorld [data-group]{cursor:pointer}#alStatus{padding:8px 16px;background:#202c34;font-size:12px;color:#b8cbd5;min-height:34px}#alEmpty{position:absolute;inset:35% 10% auto;text-align:center;color:#c7d4dd;white-space:pre-line}#alSelection{border-top:1px solid #41545f;margin-top:14px;padding-top:12px}#alSelection label{font-size:12px}#alSelection select{padding:6px}#alSelection p{font-size:12px;color:#b8cbd5}#alZoom{font-variant-numeric:tabular-nums;min-width:46px;text-align:center}@media(max-width:800px){#alSidebar{width:185px}#layoutPanel{height:80vh}#alToolbar{gap:5px;padding:8px}#alToolbar strong{width:100%}}
+#alList button{display:block;height:auto;min-height:62px;white-space:normal;font-weight:600}#alList small{display:block!important;line-height:1.5;font-weight:400}#alToolbar select{min-width:105px;padding-right:25px}#alSelection button{height:auto;min-height:38px}#layoutPanel{grid-row:2;height:100%;min-height:0}#alToolbar{flex-shrink:0}#alStatus{flex-shrink:0}#alSelectedName{display:block;margin-bottom:10px}
+#alWorld .al-track{fill:none;stroke:#68401e;stroke-width:9;stroke-linejoin:round;stroke-linecap:round}#alWorld .al-track.al-pipe{stroke:#204e70;stroke-width:8}#alWorld .al-wire{stroke-width:5}#alWorld .al-chevron{fill:none;stroke:#fff0cf;stroke-width:1.7;pointer-events:none}#alWorld .al-machine-label{fill:#10191ee8;stroke:#dcac65;stroke-width:.6}#alWorld .al-machine-art{filter:drop-shadow(2px 3px 2px #0009)}#alWorld .al-group{fill:#23303a18;stroke:#88949b;stroke-width:1.2}#alWorld .al-title{font-size:16px;paint-order:stroke;stroke:#10181c;stroke-width:4px}#alWorld text{font-weight:600;font-size:13px}#alList img{float:left;width:38px;height:44px;object-fit:contain;margin:0 9px 0 0}#alList small{font-size:11px}#alSidebar{width:235px}
+
+/* The original game meshes carry their own surface detail and shading. */
+#alWorld .al-machine-art{filter:drop-shadow(1px 2px 1px #0008)}#alWorld .al-machine-label{fill:#10191eb8;stroke:#dcac6555}#alWorld .al-surface{pointer-events:none}#alWorld .al-wire{stroke-width:1.4;stroke-opacity:.7}#alWorld .al-chevron{stroke-width:1.3}#alWorld .al-junction{filter:drop-shadow(1px 1px 1px #0009)}
+/* Production floor: machinery first, quiet panels and orange controls. */
+#alViewport{background-color:#101619;background-image:linear-gradient(#8b9aa009 1px,transparent 1px),linear-gradient(90deg,#8b9aa009 1px,transparent 1px);background-size:24px 24px}
+#alToolbar,#alStatus{background:#1b2329;border-color:#354047}
+#alToolbar strong{color:#e7a35f;font-size:13px}
+#alToolbar button{background:#252e34;border-color:#3b474f;border-radius:7px;color:#cbd3d7}
+#alToolbar button:hover{border-color:#dc9a58;color:#ffbb79}
+#alSidebar{background:#192127;border-color:#343d44;width:226px}
+#alSidebar h2{font-size:13px;color:#d1d9dd;letter-spacing:.02em}
+#alList button{border-color:#343f46;background:#222b31;border-radius:9px;padding:10px;font-size:13px}
+#alList button:hover{background:#2b3338;border-color:#78614c}
+#alList button.selected{background:#352c24;border-color:#b77a42}
+#alList small{color:#8e9fa8}
+#alWorld .al-group{fill:#24303740;stroke:#64727a50;stroke-width:1;stroke-dasharray:none}
+#alWorld .selected .al-group{stroke:#d79552;stroke-width:1.8;fill:#59402b24}
+#alWorld .al-title{font-size:14px;font-weight:600;fill:#cbd3d7;stroke:none}
+#alWorld .al-machine-art{filter:drop-shadow(2px 4px 3px #0007)}
+#alWorld .al-track,#alWorld .al-surface{display:none}
+#alWorld .al-chevron{stroke:#aeb7b7;stroke-opacity:.6;stroke-width:1;fill:none}
+#alWorld .al-junction{opacity:.7;filter:none}
+#alWorld .al-machine-label{fill:#131a1ed6;stroke:#a47c4744;stroke-width:.5}
+#alWorld .al-building-caption text{font-size:11px;font-weight:500}
+#alWorld .al-util{fill:#dab076}
+#alWorld .al-card{fill:#202b32;stroke:#5b69725c;stroke-width:1}
+#alWorld .al-card-kind{font-size:9px;fill:#8b9ca6;font-weight:500;letter-spacing:1px}
+#alWorld .al-card-name{font-size:12px;fill:#d9dfe2;font-weight:600}
+#alWorld .al-card-rate{font-size:12px;fill:#dca160;font-weight:500}
+#alWorld .al-item-icon{pointer-events:none}
+#alStatus{font-size:11px;color:#8e9fa9}
+@media(max-width:800px){#alSidebar{width:170px}}
+
+#alWorld .al-final .al-group{stroke:#82e3bb;stroke-width:4;fill:#2c665d33}#alWorld .al-final .al-title{font-size:19px;fill:#b8ffe2}#alWorld .al-related .al-group{stroke:#c5fff0;stroke-width:4;fill:#39796e55}#alWorld .al-output-badge{cursor:help}#alWorld .al-resource-card:focus{outline:none}#alWorld .al-final .al-machine-label{stroke:#82e3bb;stroke-width:1.5}
+
+/* Summaries stay beside their producer; keyboard focus exposes the same card. */
+#alWorld .al-byproduct-summary{display:none;pointer-events:none}
+#alWorld .al-output-badge:hover .al-byproduct-summary,#alWorld .al-output-badge:focus .al-byproduct-summary,#alWorld .al-output-badge:focus-within .al-byproduct-summary{display:block;pointer-events:auto}
+#alWorld .al-output-badge:focus{outline:2px solid #a0e3d0}
+
+#alWorld .al-byproduct-summary text{visibility:visible!important}
