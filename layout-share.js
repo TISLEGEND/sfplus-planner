@@ -24,5 +24,10 @@ function fromGraph(graph,data,result){
  const edges=graph.edges.map(e=>{const amount=flows.get(e.id)?.flow;if(!Number.isFinite(amount)||amount<0)throw Error('분당량이 미확인인 연결: '+e.id);return {...e,amount};});
  return {graph:JSON.parse(JSON.stringify(graph)),data:d,dataMode:graph.dataMode||'sfplus',clock:100,graphLayout:{groups,sources,sinks,edges},warnings};
 }
-const api={fromGraph};if(typeof module!=='undefined')module.exports=api;else root.RiriLayoutGraph=api;
+// Encode the graph snapshot through the same v2 codec as the node editor.
+async function encode(graph,base,settings={}){
+ const F=typeof module!=='undefined'?require('./graph-features'):root.GraphFeatures;
+ return (await F.encode({...graph,layoutShare:settings},base))+'&view=layout';
+}
+const api={fromGraph,encode};if(typeof module!=='undefined')module.exports=api;else root.RiriLayoutGraph=api;
 })(typeof window==='undefined'?globalThis:window);

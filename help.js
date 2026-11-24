@@ -95,7 +95,7 @@ function mount(){const h=document.querySelector('header');if(!h||$('#hlpBtn'))re
  const anchor=$('#viewer3dTab');if(anchor&&!is3D)anchor.after(b);else{const nav=h.querySelector('.actions,nav')||h;nav.append(b);}
  let seen=false;try{seen=!!localStorage.getItem(SEEN);}catch{}
  const want=new URLSearchParams(location.search).has('help');
- if(want)setTimeout(()=>start(is3D?T.v3d:FULL),900);else if(!seen&&!navigator.webdriver&&!location.hash.startsWith('#riri-v1='))setTimeout(()=>menu(true),900);}
+ if(want)setTimeout(()=>start(is3D?T.v3d:FULL),900);else if(!seen&&!navigator.webdriver&&!/^#riri-v[12]=/.test(location.hash))setTimeout(()=>menu(true),900);}
 window.SFHelp={start:k=>start(k==='full'?FULL:T[k]),menu:()=>menu(false),close,tours:T};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
 })();
