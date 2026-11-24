@@ -6,6 +6,7 @@ function clocks(total,mode='overclock',limit=250){
  if(Math.ceil(total-1e-9)>5000)throw Error('기계별 표시 한도 5,000개 초과');
  if(mode==='remainder'&&limit<100)mode='underclock';
  if(mode==='remainder')return Array.from({length:Math.ceil(total-1e-9)},(_,i)=>Math.min(1,total-i)*100);
+ if(mode==='overclock'&&limit>=200)return Array.from({length:count},(_,i)=>i<count-1?100:(total-count+1)*100);
  while(total/count*100>limit+1e-8)count++;
  if(count>5000)throw Error('기계별 표시 한도 5,000개 초과');
  return Array(count).fill(total/count*100);
@@ -76,6 +77,7 @@ function build(g,result,d,capacity){
  summary.power=outRows.reduce((s,r)=>s+(r.power||0),0);summary.netPower=summary.generatedPower==null?null:summary.generatedPower-summary.power;
  // Overclocking is always available; save unlock flags are unreliable in SF+.
  if(nodes.some(n=>n.type==='resource'&&n.machineClock!==undefined))summary.warnings.push('원료 공급: 기본 Miner Mk.1 보통 순도 60/분, 물·원유 추출기 120/분 기준 (기존 공급 노드에 채굴 티어·순도 정보 없음).');
+ for(const n of nodes){const saved=g.machinePositions?.[n.sourceId+':'+n.part];if(saved){n.x=saved.x;n.y=saved.y;n.center=false;}}
  return {nodes,edges,result:{...result,summary,nodes:outRows,edges}};
 }
 function scale(p,w){const out={...p};for(const k of ['amount','flow','shortage','surplus'])if(typeof out[k]==='number')out[k]*=w;for(const k of Object.keys(out))if(k.startsWith('exact'))delete out[k];return out;}

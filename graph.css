@@ -21,9 +21,26 @@ body.graph-active>nav{display:none!important}
 #graphPanel.graph-nominal .g-port-number{transform:translateY(-15px);background:var(--g-bg);padding:1px 3px;border-radius:3px;white-space:nowrap}
 
 /* Compact physical-machine cards and source-derived settings rows. */
-.graph-node .g-clock{left:auto;right:4px;top:3px;width:auto;height:auto;border:0;border-radius:3px;background:#24282d;color:#fff;padding:1px 4px;font:11px Arial;font-style:normal}
+.graph-node .g-clock{left:50%;right:auto;top:0;transform:translate(-50%,-50%);white-space:nowrap;width:auto;height:auto;border:0;border-radius:3px;background:#24282d;color:#fff;padding:1px 4px;font:11px Arial;font-style:normal}
 #gMenu.g-node-settings{background:#2f2f2f;color:#f8f8f8;border:1px solid #a0a0a0;border-radius:0;width:310px;font:14px Arial}
 #gMenu.g-node-settings label{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:5px 0}
 #gMenu.g-node-settings input{width:130px;background:#101214;color:#f8f8f8;border:1px solid #a0a0a0;border-radius:0}
 #gMenu.g-node-settings input[type=range]{padding:0}.g-detail-steps{display:flex;justify-content:flex-end;gap:4px}
 #gMenu.g-node-settings .g-detail-steps button{width:40px}#gDetailPower{display:block;margin-top:8px}
+
+/* Clock badges extend above the card; keep their full bounds visible. */
+.graph-node{overflow:visible}.graph-node .g-clock{z-index:3}
+
+/* Wrap tools and dedicate a full row to totals so menus cannot cover them. */
+#graphPanel #gToolbar{display:flex;flex-wrap:wrap;gap:6px;top:8px;left:10px;right:10px;padding:8px 10px}
+#graphPanel #gToolbar button{height:30px;padding:4px 8px;font-size:12px}
+#graphPanel #gToolbar label{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+#graphPanel #gTotals{flex:1 0 100%;margin:0;font-size:13px;line-height:20px;white-space:normal}
+#graphPanel #gToolbar button[aria-pressed=true]{background:#426b70;border-color:#9bd6d0}
+#graphPanel .g-clock{overflow:visible;line-height:16px;min-height:16px}
+
+#graphPanel #gToolbar{height:auto;max-height:none;overflow:visible}#graphPanel #gTotals{order:100;display:block}
+
+#graphPanel #gToolbar strong{display:none}#graphPanel #gTotals{pointer-events:none}#graphPanel #gToolbar select{font-size:12px;padding:4px;height:30px;width:auto}#graphPanel #gToolbar label{font-size:12px}
+
+#graphPanel .g-waypoint{width:10px;height:10px;padding:0;background:#8cd0cd;border:1px solid #183c43;cursor:move}

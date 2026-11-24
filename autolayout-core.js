@@ -144,7 +144,13 @@ function generate(plan,options={}){
   while(pendingTerminals.length){
    const distance=p=>Math.min(...[...treePoints.values()].map(q=>Math.abs(p.x-q.x)+Math.abs(p.y-q.y)));
    pendingTerminals.sort((a,b)=>distance(a)-distance(b)||a.x-b.x||a.y-b.y);const terminal=pendingTerminals.shift();
-   const points=route(terminal,[...treePoints.values()]);
+   let points;try{points=route(terminal,[...treePoints.values()]);}catch(error){
+    // Different clocks create adjacent halls and extra bus terminals. Add clearance
+    // lanes around terminals without relaxing panel or parallel-bus collision checks.
+    const targets=[...treePoints.values()],all=[terminal,...targets,...ee.flatMap(e=>[e.busStart,e.busEnd])];
+    const expanded=(values,axis)=>[...new Set([...values,...all.flatMap(p=>[p[axis],p[axis]-clearance,p[axis]+clearance])])].sort((a,b)=>a-b);
+    points=makeRouter(expanded(xs,'x'),expanded(ys,'y'),spaced,used,key,crossing)(terminal,targets);
+   }
    for(let i=1;i<points.length;i++)connectors.push([points[i-1],points[i]]);
    for(const k of used){const [x,y,u,v]=k.split(',').map(Number);treePoints.set(x+','+y,{x,y});treePoints.set(u+','+v,{x:u,y:v});}
   }
