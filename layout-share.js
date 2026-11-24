@@ -4,7 +4,9 @@ function fromGraph(graph,data,result){
  if(!graph?.nodes?.length)throw Error('노드 그래프에 노드를 먼저 추가하세요.');
  const G=typeof module!=='undefined'?require('./graph-engine'):root.SFGraph;
  const L=typeof module!=='undefined'?require('./logistics'):root.SFLogistics;
- const groups=[],sources=[],sinks=[],warnings=[];
+ for(const n of graph.nodes)if(!['recipe','resource','sink','logistics'].includes(n.type))throw Error('지원하지 않는 노드: '+n.type+' ('+n.id+')');
+ const V=typeof module!=='undefined'?require('./machine-view'):root.MachineView;const projected=V.build(graph,result,data);const originalGraph=graph;graph={...graph,nodes:projected.nodes,edges:projected.edges};result=projected.result;
+ const groups=[],sources=[],sinks=[],warnings=[...result.summary.warnings];
  const d={...data,buildings:{...data.buildings},recipes:[...data.recipes]};
  const flows=new Map(result.edges.map(e=>[e.id,e]));
  for(const n of graph.nodes){
@@ -21,8 +23,13 @@ function fromGraph(graph,data,result){
   const extraByproducts=n.type==='recipe'?r.output.filter(o=>!graph.edges.some(e=>e.from===n.id&&e.item===o.item)&&o.amount>0).map(o=>({item:o.item,amount:o.amount})):[];
   groups.push({extraByproducts,id:n.id,kind:'group',item,recipe,machine,count,clock,modular:n.modular,amount:(p.output[0]?.amount||0)*n.max,graphNode:JSON.parse(JSON.stringify(n)),final:!graph.edges.some(e=>e.from===n.id&&graph.nodes.find(n=>n.id===e.to)?.type!=='sink')});
  }
- const edges=graph.edges.map(e=>{const amount=flows.get(e.id)?.flow;if(!Number.isFinite(amount)||amount<0)throw Error('분당량이 미확인인 연결: '+e.id);return {...e,amount};});
- return {graph:JSON.parse(JSON.stringify(graph)),data:d,dataMode:graph.dataMode||'sfplus',clock:100,graphLayout:{groups,sources,sinks,edges},warnings};
+ // A factory hall groups equal-clock machines from the same original node.
+ // Keep different remainder clocks in separate halls, preserving physical count and flow.
+ const remap=new Map(),halls=new Map();
+ for(const list of [groups,sources,sinks]){const merged=[];for(const n of list){const key=(n.graphNode?.sourceId||n.id)+'|'+(n.clock||100);const old=halls.get(key);if(old){remap.set(n.id,old.id);old.amount+=n.amount;if(n.count!==undefined)old.count+=n.count;}else{halls.set(key,n);merged.push(n);remap.set(n.id,n.id);}}list.splice(0,list.length,...merged);}
+ const rawEdges=graph.edges.map(e=>{const amount=flows.get(e.id)?.flow;if(!Number.isFinite(amount)||amount<0)throw Error('분당량이 미확인인 연결: '+e.id);return {...e,from:remap.get(e.from)||e.from,to:remap.get(e.to)||e.to,amount};});
+ const edges=[];for(const e of rawEdges){const old=edges.find(a=>a.from===e.from&&a.to===e.to&&a.item===e.item&&(a.fromPort??0)===(e.fromPort??0)&&(a.toPort??0)===(e.toPort??0));if(old)old.amount+=e.amount;else edges.push(e);}
+ return {graph:JSON.parse(JSON.stringify(originalGraph)),data:d,dataMode:graph.dataMode||'sfplus',clock:100,graphLayout:{groups,sources,sinks,edges},warnings};
 }
 // Encode the graph snapshot through the same v2 codec as the node editor.
 async function encode(graph,base,settings={}){

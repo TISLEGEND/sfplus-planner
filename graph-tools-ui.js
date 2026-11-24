@@ -14,7 +14,7 @@ tool('gExpand','거꾸로 자동 전개',()=>{
  const search=field('목표 검색',Object.assign(element('input'),{type:'search',id:'gAutoSearch',placeholder:'아이템 이름(한글·영어) / 클래스 ID'}));
  const target=field('최종 아이템',select(Object.entries(d.items).filter(([id,i])=>i.resource||d.recipes.some(r=>r.products.some(p=>p.item===id)&&!r.ingredients.some(p=>p.item===id))).map(([id,i])=>[id,koLabel(i.name)]),'gAutoTarget'));
  const rate=field('분당 목표량',Object.assign(element('input'),{type:'number',value:'120',min:'0.001',max:'1000000',step:'any',id:'gAutoRate'}));
- dialog.append(element('p','만들 아이템과 분당 개수(액체·기체는 m³)를 정하고 [그래프 생성]을 누르면, 원자재 채굴까지 필요한 기계를 전부 이어서 그려 줍니다. 같은 재료는 노드 하나로 합치고 기본 레시피를 먼저 씁니다. 아래 목록에서 단계별 레시피를 바꿀 수 있어요. 지금 그래프는 그대로 두고 그 아래에 새로 덧붙이며, 마음에 안 들면 Ctrl+Z로 취소할 수 있습니다.'));
+ dialog.append(element('p','만들 아이템과 분당 개수(액체·기체는 m³)를 정하고 [그래프 생성]을 누르면, 원자재 채굴까지 필요한 기계를 전부 이어서 그려 줍니다. 기본 레시피를 먼저 쓰며, 상단의 기계별로 펼치기가 켜져 있으면 1대씩 나누어 표시합니다. 아래 목록에서 단계별 레시피를 바꿀 수 있어요. 지금 그래프는 그대로 두고 그 아래에 새로 덧붙이며, 마음에 안 들면 Ctrl+Z로 취소할 수 있습니다.'));
  const rows=element('div');rows.id='gAutoRecipes';dialog.append(rows);const error=element('p');error.id='gAutoError';error.setAttribute('role','alert');dialog.append(error);
  function update(){rows.replaceChildren();error.textContent='';try{for(const row of F.reachable(d,target.value,choices)){
   const label=element('label',koLabel(d.items[row.item].name)),s=select(row.options.map(r=>[r.id,(r.alternate?'대체: ':'기본: ')+r.name]),'auto-'+row.item);s.value=row.recipe||'';s.dataset.item=row.item;
