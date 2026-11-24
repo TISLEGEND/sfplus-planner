@@ -19,3 +19,11 @@ body.graph-active>nav{display:none!important}
 
 /* Keep local deficit/surplus badges clear of the connection flow labels. */
 #graphPanel.graph-nominal .g-port-number{transform:translateY(-15px);background:var(--g-bg);padding:1px 3px;border-radius:3px;white-space:nowrap}
+
+/* Compact physical-machine cards and source-derived settings rows. */
+.graph-node .g-clock{left:auto;right:4px;top:3px;width:auto;height:auto;border:0;border-radius:3px;background:#24282d;color:#fff;padding:1px 4px;font:11px Arial;font-style:normal}
+#gMenu.g-node-settings{background:#2f2f2f;color:#f8f8f8;border:1px solid #a0a0a0;border-radius:0;width:310px;font:14px Arial}
+#gMenu.g-node-settings label{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:5px 0}
+#gMenu.g-node-settings input{width:130px;background:#101214;color:#f8f8f8;border:1px solid #a0a0a0;border-radius:0}
+#gMenu.g-node-settings input[type=range]{padding:0}.g-detail-steps{display:flex;justify-content:flex-end;gap:4px}
+#gMenu.g-node-settings .g-detail-steps button{width:40px}#gDetailPower{display:block;margin-top:8px}

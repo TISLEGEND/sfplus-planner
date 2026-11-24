@@ -2,6 +2,7 @@
  * modeler/d/{j,k,l,m,n,p,q,r,t}.java and d/c/{a,c,d}.java.
  * No LP objective, floating tolerance, artificial upper bound or reference values. */
 (function(root){'use strict';
+const Settings=typeof module!=='undefined'?require('./machine-settings'):root.MachineSettings;
 const gcd=(a,b)=>{a=a<0n?-a:a;while(b){[a,b]=[b,a%b];}return a;};
 class R{
  constructor(n,d=1n){n=BigInt(n);d=BigInt(d);if(d<0n){n=-n;d=-d;}if(!d)n=n<0n?-1n:n>0n?1n:0n;else{const g=gcd(n,d);if(g){n/=g;d/=g;}}this.n=n;this.d=d;}
@@ -11,7 +12,7 @@ class R{
 }
 const Z=new R(0),O=new R(1),INF=new R(1,0),NAN=new R(0,0);
 function format(value,options={}){const q=R.of(value);if(!q.finite)return '?';const negative=q.n<0n,abs=q.abs(),whole=abs.n/abs.d,remainder=abs.n%abs.d,sign=negative?'-':'';if(options.display==='Fraction')return sign+(!remainder?whole.toLocaleString('en-US'):(whole?whole.toLocaleString('en-US')+' ':'')+remainder+'/'+abs.d);const digits=Math.max(0,Math.min(8,options.digits??2)),scale=10n**BigInt(digits),scaled=abs.n*scale;let rounded=scaled/abs.d;const rem=scaled%abs.d;if(options.round==='Up'?!negative&&rem>0n:options.round==='Down'?negative&&rem>0n:rem*2n>=abs.d)rounded++;const a=rounded/scale,b=rounded%scale,fraction=String(b).padStart(digits,'0').replace(/0+$/,'');return (rounded&&negative?'-':'')+a.toLocaleString('en-US')+(fraction?'.'+fraction:'');}
-function rate(n,p,port,input){if(p.unknown)return Z;if(p.modularResult){const v=p.modularResult;if(!input&&p.recipe.modularMiner.stage!=='Drill'){const info=p.recipe.modularMiner.properties.mModuleInformation.find(x=>x.Key.includes('WP_'+p.recipe.modularMiner.stage+'.')).Value;const trash=info.mTrashItem?.ObjectName?.split("'")[1],main=info.mProductionItem?.ObjectName?.split("'")[1];let amount=Z;if(port.item===main)amount=amount.add(R.of(v.total));if(port.item===trash)amount=amount.add(R.of(v.total).div(3));return amount;}return R.of(port.amount);}if(n.type!=='recipe')return R.of(port.amount);const r=p.recipe,raw=(input?r.ingredients:r.products).find(x=>x.item===port.item);return R.of(raw.exact??raw.amount).mul(60).div(r.exactSeconds??r.seconds).mul(p.machine.speed).mul(n.clockExact??n.clock).div(100);}
+function rate(n,p,port,input){if(p.unknown)return Z;if(p.modularResult){const v=p.modularResult;if(!input&&p.recipe.modularMiner.stage!=='Drill'){const info=p.recipe.modularMiner.properties.mModuleInformation.find(x=>x.Key.includes('WP_'+p.recipe.modularMiner.stage+'.')).Value;const trash=info.mTrashItem?.ObjectName?.split("'")[1],main=info.mProductionItem?.ObjectName?.split("'")[1];let amount=Z;if(port.item===main)amount=amount.add(R.of(v.total));if(port.item===trash)amount=amount.add(R.of(v.total).div(3));return amount;}return R.of(port.amount);}if(n.type!=='recipe')return R.of(port.amount);const r=p.recipe,raw=(input?r.ingredients:r.products).find(x=>x.item===port.item);return R.of(raw.exact??raw.amount).mul(60).div(r.exactSeconds??r.seconds).mul(p.machine.speed).mul(n.clockExact??n.clock).div(100).mul(input?1:1+(n.somersloops||0)/Math.max(1,Settings.slots(p.machine)||1));}
 function variable(cap,refs=[]){return {a:R.of(cap),b:null,c:[],d:[],refs,j:null};}
 // d/d/g: zero disconnection, parallel-link reduction, single-link contraction.
 function contract(ds){let changed=true;while(changed){changed=false;
