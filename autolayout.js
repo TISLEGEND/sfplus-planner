@@ -132,5 +132,5 @@ async function openLayoutHash(){const ticket=++shareOpening;if(!/^#riri-v[12]=/.
  const settings=graph.layoutShare;if(settings){overrides.clear();for(const [id,v]of Object.entries(settings.overrides||{}))overrides.set(id,v);for(const [id,k]of [['alInput','input'],['alOutput','output']])if(settings[k]!==undefined)$(id).value=settings[k];if(settings.view&&['x','y','z'].every(k=>Number.isFinite(settings.view[k])))Object.assign(view,settings.view);draw();}
  }catch(e){$('alStatus').textContent='공유 배치 열기 실패: '+e.message;}}
 window.addEventListener('hashchange',openLayoutHash);openLayoutHash();
-window.RiriAutolayout={get:()=>layout,view:()=>({...view}),overrides:()=>Object.fromEntries(overrides),regenerate,fit};
+window.RiriAutolayout={get:()=>layout,plan:()=>plan,view:()=>({...view}),overrides:()=>Object.fromEntries(overrides),regenerate,fit};
 })();
