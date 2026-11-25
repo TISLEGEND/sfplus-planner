@@ -81,7 +81,7 @@ function place(){if(!card)return;const s=steps[i],e=s?resolve(s):null,cw=card.of
  card.style.left=Math.max(12,Math.min(W-cw-12,L))+'px';card.style.top=Math.max(12,Math.min(H-ch-12,Tp))+'px';}
 function go(n){if(n<0)return;if(n>=steps.length){finish();return;}i=n;const s=steps[i];try{s.pre?.();}catch{}
  setTimeout(()=>{const e=resolve(s);if(e&&e.scrollIntoView){const r=e.getBoundingClientRect();if(r.top<0||r.bottom>innerHeight)e.scrollIntoView({block:'center'});}
-  card.innerHTML=`<h3>${s.t}</h3>${s.b}<div class="hlp-foot"><span>${i+1} / ${steps.length}</span><button data-a="x">그만 보기</button>${i?'<button data-a="p">이전</button>':''}<button class="main" data-a="n">${i===steps.length-1?'끝':'다음'}</button></div>`;
+  card.innerHTML=`<h3>${s.t}</h3>${(window.SFTouchText&&window.SFTouchText(s))||s.b}<div class="hlp-foot"><span>${i+1} / ${steps.length}</span><button data-a="x">그만 보기</button>${i?'<button data-a="p">이전</button>':''}<button class="main" data-a="n">${i===steps.length-1?'끝':'다음'}</button></div>`;
   card.querySelector('[data-a=x]').onclick=close;card.querySelector('[data-a=p]')&&(card.querySelector('[data-a=p]').onclick=()=>go(i-1));card.querySelector('[data-a=n]').onclick=()=>go(i+1);
   place();card.querySelector('.main').focus();},s.pre?260:0);}
 function finish(){steps=[];card.innerHTML='<h3>다 봤어요!</h3><p>언제든 위쪽 <b>도움말</b> 버튼으로 다시 볼 수 있어요. 탭 하나만 골라서 다시 볼 수도 있어요.</p><div class="hlp-foot"><span></span><button class="main" data-a="x">닫기</button></div>';card.querySelector('[data-a=x]').onclick=close;spot.classList.add('none');shade.style.clipPath='none';place();card.querySelector('.main').focus();}
@@ -95,7 +95,7 @@ function mount(){const h=document.querySelector('header');if(!h||$('#hlpBtn'))re
  const anchor=$('#viewer3dTab');if(anchor&&!is3D)anchor.after(b);else{const nav=h.querySelector('.actions,nav')||h;nav.append(b);}
  let seen=false;try{seen=!!localStorage.getItem(SEEN);}catch{}
  const want=new URLSearchParams(location.search).has('help');
- if(want)setTimeout(()=>start(is3D?T.v3d:FULL),900);else if(!seen&&!navigator.webdriver&&!/^#riri-v[12]=/.test(location.hash))setTimeout(()=>menu(true),900);}
+ if(want)setTimeout(()=>start(is3D?T.v3d:FULL),900);else if(!seen&&!navigator.webdriver&&!/^#riri-v[123]=/.test(location.hash))setTimeout(()=>menu(true),900);}
 window.SFHelp={start:k=>start(k==='full'?FULL:T[k]),menu:()=>menu(false),close,tours:T};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
 })();

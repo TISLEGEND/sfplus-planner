@@ -1,0 +1,51 @@
+#gPlanNotesPanel{box-sizing:border-box;width:min(640px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto;border:1px solid #68818f;border-radius:12px;background:#17232e;color:#eff5fa;padding:18px}
+#gPlanNotesPanel::backdrop{background:#0009}
+#gPlanNotesPanel label,.g-notes-editor label{display:flex;flex-direction:column;gap:6px;margin:10px 0;min-width:0}
+#gPlanNotesPanel textarea,.g-notes-editor textarea{box-sizing:border-box;width:100%;min-height:100px;resize:vertical}
+#gPlanNotesPanel input,#gPlanNotesPanel textarea,.g-notes-editor input,.g-notes-editor textarea,.g-notes-editor select{max-width:100%;font:inherit}
+#gPlanNotesPanel button,.g-notes-editor button{min-height:36px;margin:6px 4px 0 0}
+.g-notes-editor{border-top:1px solid #68818f;margin-top:12px;padding-top:8px;max-width:100%}
+.g-notes-preview{white-space:pre-wrap;overflow-wrap:anywhere}
+.g-note-dot{position:absolute;top:2px;right:2px;font-size:14px;line-height:18px;text-shadow:0 0 2px #000;pointer-events:none}
+.g-note-state-0{color:#b8c5d1}.g-note-state-1{color:#ffbf47}.g-note-state-2{color:#55dd9a}
+#gToolsDialog #gShareNotes{width:18px;height:18px;margin:0 8px 0 0}
+
+/* Match the graph toolbar and keep settings and notes on the same surface. */
+#graphPanel #gMenu.g-node-settings,#gPlanNotesPanel{background:#172329;color:var(--text-primary,#eef3f6);border:1px solid var(--border-default,#344956);border-radius:12px}
+#graphPanel #gMenu .g-notes-editor{box-sizing:border-box;width:100%;text-align:left}
+#graphPanel #gMenu .g-notes-editor>label,#gPlanNotesPanel label{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;text-align:left;gap:6px;margin:12px 0}
+#graphPanel #gMenu .g-notes-editor input:not([type=radio]),#graphPanel #gMenu .g-notes-editor textarea,#gPlanNotesPanel textarea{box-sizing:border-box;display:block;width:100%;max-width:100%;margin:0;padding:10px;border:1px solid var(--border-default,#344956);border-radius:8px;background:var(--bg-0,#101b25);color:inherit;font:inherit;line-height:1.6}
+#graphPanel #gMenu .g-notes-editor h3{margin:10px 0;font-size:14px}
+#graphPanel #gMenu .g-notes-editor p,#gPlanNotesPanel p{line-height:1.6;overflow-wrap:anywhere}
+#graphPanel #gMenu .g-notes-editor>p:first-of-type{color:var(--text-secondary,#b2c2cd)}
+#graphPanel #gMenu .g-note-status{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;padding:0;margin:12px 0;border:0;min-width:0}
+#graphPanel #gMenu .g-note-status legend{padding:0;margin-bottom:6px}
+#graphPanel #gMenu .g-note-status label{position:relative;display:flex;align-items:center;justify-content:center;gap:4px;min-height:40px;margin:0;padding:3px;box-sizing:border-box;border:1px solid var(--border-default,#344956);border-radius:8px;background:var(--surface-2,#243542);cursor:pointer;white-space:nowrap;font-size:12px}
+#graphPanel #gMenu .g-note-status input{position:absolute;opacity:0;width:1px;height:1px;margin:0;padding:0}
+#graphPanel #gMenu .g-note-status label:has(:checked){border-color:var(--accent,#8cdec8);background:#29443f;box-shadow:inset 0 0 0 1px var(--accent,#8cdec8)}
+#graphPanel #gMenu .g-note-status label:focus-within{outline:2px solid var(--accent,#8cdec8);outline-offset:2px}
+.g-notes-actions{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:12px}
+#graphPanel #gMenu .g-notes-actions button,#gPlanNotesPanel button{display:inline-flex;align-items:center;justify-content:center;width:auto;min-height:36px;margin:0;padding:8px 12px;border:1px solid var(--border-default,#344956);border-radius:8px;background:var(--surface-2,#243542);color:var(--text-primary,#eef3f6);font:550 12px var(--font-ui,Arial,sans-serif);cursor:pointer}
+#graphPanel #gMenu .g-notes-actions button:hover,#gPlanNotesPanel button:hover{background:var(--surface-3,#2e4352)}
+#graphPanel #gMenu .g-notes-editor [role=status],#gPlanNotesPanel [role=status]{color:var(--accent,#8cdec8);margin:10px 0 0}
+#graphPanel #gMenu .g-notes-editor [role=status]:empty,#gPlanNotesPanel [role=status]:empty{display:none}
+#graphPanel #gMenu #gNoteState[hidden],#gPlanNotesPreview[hidden]{display:none!important}
+
+/* Keep the legacy state control as a noninteractive value bridge. */
+#graphPanel #gMenu .g-note-state-value{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px;min-height:0;padding:0;margin:0;border:0}
+.g-note-choice-0{color:#b8c5d1}.g-note-choice-1{color:#ffbf47}.g-note-choice-2{color:#55dd9a}
+
+/* Node settings share the construction notes input and toolbar surfaces. */
+#graphPanel #gMenu.g-node-settings{box-sizing:border-box;overflow:auto;overscroll-behavior:contain;scroll-padding:12px}
+#graphPanel #gMenu .g-detail-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px}
+#graphPanel #gMenu .g-detail-heading strong{min-width:0;overflow-wrap:anywhere}
+#graphPanel #gMenu .g-detail-heading button,#graphPanel #gMenu .g-detail-steps button{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:auto;min-height:32px;height:32px;margin:0;padding:6px 10px;border:1px solid var(--border-default,#344956);border-radius:8px;background:var(--surface-2,#243542);color:var(--text-primary,#eef3f6);font:550 12px var(--font-ui,Arial,sans-serif);cursor:pointer}
+#graphPanel #gMenu .g-detail-heading button:hover,#graphPanel #gMenu .g-detail-steps button:hover{background:var(--surface-3,#2e4352)}
+#graphPanel #gMenu.g-node-settings>label>input[type=number]{box-sizing:border-box;min-width:0;margin:0;padding:10px;border:1px solid var(--border-default,#344956);border-radius:8px;background:var(--bg-0,#101b25);color:inherit;font:inherit;line-height:1.6}
+#graphPanel #gMenu .g-detail-steps{display:flex;align-items:center;gap:6px;min-width:0;width:160px;flex-shrink:0}
+#graphPanel #gMenu .g-detail-steps button{width:30px;padding:0;font-size:16px}
+#graphPanel #gMenu .g-detail-steps input[type=range]{flex:1;width:0;min-width:0;min-height:32px;margin:0;padding:0;accent-color:var(--accent,#8cdec8)}
+@media(max-width:800px){
+ #graphPanel #gMenu.g-node-settings{top:auto!important;bottom:var(--g-settings-bottom,8px)!important;max-height:max(0px,calc(100dvh - var(--g-settings-top,8px) - var(--g-settings-bottom,8px)))!important}
+ #graphPanel #gMenu.g-node-settings>label>input[type=number]{font-size:16px}
+}

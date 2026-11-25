@@ -1,0 +1,17 @@
+#gLibraryPanel{width:min(720px,calc(100vw - 32px));max-height:85dvh;box-sizing:border-box;overflow:auto;background:#20272e;color:#e1ecee;border:1px solid #647a83;border-radius:12px;padding:22px}
+#gLibraryPanel::backdrop{background:#0009}
+#gLibraryPanel h2{font-size:20px;margin:0;flex:1}
+#gLibraryPanel p{line-height:1.6;overflow-wrap:anywhere;color:#b9cbce}
+#gLibraryPanel input{width:100%;box-sizing:border-box;margin-top:8px}
+.g-library-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.g-library-row{border-top:1px solid #4a5a64;padding:12px 0;overflow-wrap:anywhere}
+.g-library-row h3{margin:0 0 6px}
+.g-library-row>button{margin-top:8px}
+.g-library-confirm{padding:12px;background:#392e32;border:1px solid #b77c80;border-radius:8px;margin-top:8px}
+.g-library-confirm button{margin-right:8px}
+#gLibraryError{color:#ffb8b8}
+
+#gLibraryPanel .g-library-danger{color:#ffb8b8;border:1px solid #b77c80;background:#392e32}
+#gLibraryPanel .g-library-row .g-library-actions{flex-wrap:nowrap}
+#gLibraryPanel .g-library-actions button{white-space:nowrap;min-height:40px}
+@media(max-width:480px){#gLibraryPanel{padding:14px}#gLibraryPanel .g-library-row .g-library-actions{gap:5px}#gLibraryPanel .g-library-row .g-library-actions button{padding:8px;font-size:12px}}

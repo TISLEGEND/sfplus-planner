@@ -1,0 +1,18 @@
+#graphPanel #gToolbar{flex-wrap:nowrap;max-height:none;overflow:visible;min-height:46px;box-sizing:border-box}
+#graphPanel #gToolbar>button,#graphPanel .g-toolbar-group{flex:0 0 auto}
+#graphPanel #gTotals{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px}
+.g-toolbar-group{position:relative}
+#graphPanel .g-toolbar-popup{position:absolute;top:calc(100% + 8px);left:0;min-width:245px;max-height:calc(100vh - 80px);overflow:auto;display:flex;flex-direction:column;align-items:stretch;gap:6px;padding:12px;background:#20272e;border:1px solid #647a83;border-radius:8px;box-shadow:0 8px 24px #0008;color:#eff;z-index:40}
+#graphPanel .g-toolbar-popup[hidden]{display:none!important}
+#graphPanel #gToolbar .g-toolbar-popup label{display:flex;margin:0;padding:5px 0;flex-wrap:wrap}
+#graphPanel .g-toolbar-popup button{text-align:left;flex-shrink:0}
+#graphPanel #gToolbar :focus-visible{outline:2px solid #9bd6d0;outline-offset:2px}
+#graphPanel #gToolbar #gTotals{flex:1 1 0;width:auto;min-width:0;max-width:none;margin-left:auto}
+
+@media(max-width:600px){
+ #graphPanel #gToolbar{left:6px;right:6px;padding:6px;gap:4px;flex-wrap:wrap}
+ #graphPanel #gToolbar>button,#graphPanel #gToolbar .g-toolbar-group>button{padding:0 7px;font-size:11px}
+ #graphPanel #gToolbar #gTotals{flex:1 1 100%;margin:0}
+ #graphPanel .g-toolbar-popup{min-width:210px;max-width:calc(100vw - 20px)}
+ #graphPanel .g-toolbar-group:last-of-type .g-toolbar-popup{left:auto;right:0}
+}

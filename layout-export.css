@@ -1,0 +1,13 @@
+#layoutPrintSheet { display:none; }
+#graphPanel:has(#gMenu:not([hidden])) .graph-overview { display:none!important; }
+@page { size:A4 landscape; margin:8mm; background:white; }
+@media print {
+ html,body { color-scheme:light!important; margin:0!important; padding:0!important; background:white!important; color:black!important; width:100%!important; max-width:none!important; min-width:0!important; height:100%!important; overflow:visible!important; }
+ body > :not(#layoutPrintSheet) { display:none!important; }
+ #layoutPrintSheet { display:block!important; width:100%; height:193mm; background:white; }
+ #layoutPrintSheet > svg { width:100%; height:100%; display:block; overflow:visible; }
+ body.riri-export-capture > :not(#layoutPrintSheet) { display:revert!important; }
+ #layoutPrintSheet text { fill:#111!important; }
+
+
+}

@@ -44,3 +44,10 @@ body.graph-active>nav{display:none!important}
 #graphPanel #gToolbar strong{display:none}#graphPanel #gTotals{pointer-events:none}#graphPanel #gToolbar select{font-size:12px;padding:4px;height:30px;width:auto}#graphPanel #gToolbar label{font-size:12px}
 
 #graphPanel .g-waypoint{width:10px;height:10px;padding:0;background:#8cd0cd;border:1px solid #183c43;cursor:move}
+
+#graphPanel .g-port-number{top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;gap:3px}
+.g-port-number::before{content:'';position:absolute;top:50%;width:var(--port-leader,0px);border-top:1px solid currentColor;pointer-events:none}.output .g-port-number::before{right:100%}.input .g-port-number::before{left:100%}
+
+/* Flow captions identify their source; ordinary dragging never creates waypoints. */
+#gLabels .g-edge-label:not(.g-waypoint){cursor:default;background:var(--g-bg);border:1px solid #557781;border-radius:4px;padding:2px 5px;gap:5px}
+#graphPanel .graph-node>.g-port-number{display:flex;align-items:center;gap:4px;background:var(--g-bg);border-left:3px solid #95f6a8;padding:2px 4px;font-size:12px;pointer-events:none}

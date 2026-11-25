@@ -12,7 +12,7 @@ function clocks(total,mode='overclock',limit=250){
  return Array(count).fill(total/count*100);
 }
 function build(g,result,d,capacity){
- if(g.expandMachines===false)return {nodes:g.nodes,edges:result.edges,result};
+ if(g.expandMachines===false){const nodes=g.nodes.map(n=>({...n}));repairPositions(nodes,result.nodes);return {nodes,edges:result.edges,result};}
  const rows=new Map(result.nodes.map(n=>[n.id,n])),parts=new Map(),nodes=[],outRows=[];
  let serial=0;const ids=new Set(g.nodes.map(n=>n.id));const uid=()=>{let id;do{id='machine-view-'+serial++;}while(ids.has(id));ids.add(id);return id;};
  // Consumers are visited before their suppliers, including disconnected components and cycles.
@@ -52,14 +52,14 @@ function build(g,result,d,capacity){
  const depth=new Map(),active=new Set(),by=new Map(g.nodes.map(n=>[n.id,n]));
  function level(id){if(depth.has(id))return depth.get(id);if(active.has(id))return 0;active.add(id);let v=0;for(const e of g.edges.filter(e=>e.from===id))if(by.has(e.to)&&!active.has(e.to))v=Math.max(v,level(e.to)+1);active.delete(id);depth.set(id,v);return v;}
  g.nodes.forEach(n=>level(n.id));const lanes=new Map(),placed=[];
- for(const n of nodes){if(n.type==='group')continue;const key=(n.parent||'')+'|'+depth.get(n.sourceId),r=outRows.find(r=>r.id===n.id),h=Math.max(44,(r?.input.length||0)*24,(r?.output.length||0)*24)+110;const base=by.get(n.sourceId);n.x=base.x;n.y=Math.max(base.y,lanes.get(key)||0);n.center=false;for(let k=0;k<=placed.length;k++){const hit=placed.find(p=>p.parent===(n.parent||null)&&n.x<p.x+260&&n.x+260>p.x&&n.y<p.y+p.h&&n.y+h>p.y);if(!hit)break;n.y=hit.y+hit.h;}placed.push({x:n.x,y:n.y,h,parent:n.parent||null});lanes.set(key,n.y+h);if(base)n.title=base.title;}
+ for(const n of nodes){if(n.type==='group')continue;const key=(n.parent||'')+'|'+depth.get(n.sourceId),r=outRows.find(r=>r.id===n.id),h=Math.max(44,(r?.input.length||0)*24,(r?.output.length||0)*24)+200;const base=by.get(n.sourceId);n.x=base.x;n.y=Math.max(base.y,lanes.get(key)||0);n.center=false;for(let k=0;k<=placed.length;k++){const hit=placed.find(p=>p.parent===(n.parent||null)&&n.x<p.x+260&&n.x+260>p.x&&n.y<p.y+p.h&&n.y+h>p.y);if(!hit)break;n.y=hit.y+hit.h;}placed.push({x:n.x,y:n.y,h,parent:n.parent||null});lanes.set(key,n.y+h);if(base)n.title=base.title;}
  // Alternate barycenter sweeps and monotone allocation. Keep all changes in the display projection.
  if(new Set(g.nodes.filter(n=>n.type!=='group').map(n=>n.x)).size>1){
   const columns=new Map(),nodeBy=new Map(nodes.map(n=>[n.id,n]));
   const maxDepth=Math.max(0,...depth.values()),left=Math.min(...g.nodes.map(n=>n.x));
-  for(const n of nodes){if(n.type==='group')continue;const key=(n.parent||'')+'|'+depth.get(n.sourceId);if(!columns.has(key))columns.set(key,[]);columns.get(key).push(n);n.x=left+(maxDepth-depth.get(n.sourceId))*330;}
+  for(const n of nodes){if(n.type==='group')continue;const key=(n.parent||'')+'|'+depth.get(n.sourceId);if(!columns.has(key))columns.set(key,[]);columns.get(key).push(n);n.x=left+(maxDepth-depth.get(n.sourceId))*560;}
   const rowBy=new Map(outRows.map(r=>[r.id,r]));
-  const size=n=>Math.max(44,(rowBy.get(n.id)?.input.length||0)*24,(rowBy.get(n.id)?.output.length||0)*24)+110;
+  const size=n=>Math.max(44,(rowBy.get(n.id)?.input.length||0)*24,(rowBy.get(n.id)?.output.length||0)*24)+200;
   const ordered=[...columns.values()].sort((a,b)=>a[0].x-b[0].x);
   for(let sweep=0;sweep<8;sweep++){
    for(const col of (sweep%2?[...ordered].reverse():ordered)){
@@ -78,7 +78,17 @@ function build(g,result,d,capacity){
  // Overclocking is always available; save unlock flags are unreliable in SF+.
  if(nodes.some(n=>n.type==='resource'&&n.machineClock!==undefined))summary.warnings.push('원료 공급: 기본 Miner Mk.1 보통 순도 60/분, 물·원유 추출기 120/분 기준 (기존 공급 노드에 채굴 티어·순도 정보 없음).');
  for(const n of nodes){const saved=g.machinePositions?.[n.sourceId+':'+n.part];if(saved){n.x=saved.x;n.y=saved.y;n.center=false;}}
+ // Saved positions are preferences, not exemptions from collision checks.
+ repairPositions(nodes,outRows);
  return {nodes,edges,result:{...result,summary,nodes:outRows,edges}};
+}
+function repairPositions(nodes,rows){
+ const by=new Map(rows.map(r=>[r.id,r])),placed=[];
+ for(const n of nodes){const r=by.get(n.id),w=n.type==='resource'?210:240,h=Math.max(44,(r?.input.length||0)*24,(r?.output.length||0)*24)+100;
+ let x=n.x-(n.center?w/2:0),y=n.y-(n.center?h/2:0);
+ for(;;){const hit=placed.find(p=>p.parent===(n.parent||null)&&x<p.x+p.w+32&&x+w+32>p.x&&y<p.y+p.h+32&&y+h+32>p.y);if(!hit)break;y=hit.y+hit.h+32;}
+ n.x=x;n.y=y;n.center=false;placed.push({x,y,w,h,parent:n.parent||null});
+ }
 }
 function scale(p,w){const out={...p};for(const k of ['amount','flow','shortage','surplus'])if(typeof out[k]==='number')out[k]*=w;for(const k of Object.keys(out))if(k.startsWith('exact'))delete out[k];return out;}
 const api={build,clocks};if(typeof module!=='undefined')module.exports=api;else root.MachineView=api;

@@ -3,3 +3,30 @@
 #graphPanel #gToolbar{flex-wrap:wrap;height:auto;min-height:44px;max-height:160px;overflow:auto;gap:6px}#graphPanel #gTotals{white-space:normal;display:block;margin-left:auto;font-size:12px}#graphPanel #gToolbar button{white-space:nowrap;font-size:12px;padding:5px 9px}#gSaveShared{background:#885132!important}#graphPanel #gStatus{max-width:min(850px,85vw);white-space:normal}
 
 #graphPanel #gSaveShared[hidden]{display:none!important}
+
+#gAutoGoals .g-auto-goal{min-width:0;margin:12px 0;border:1px solid #aab7a5;border-radius:6px}#gAutoGoals select,#gAutoGoals input{min-width:0;box-sizing:border-box}#gToolsDialog{box-sizing:border-box;max-width:92vw}
+
+#gAutoGoals label{color:#354632}#gAutoGoals legend{color:#354632}
+
+/* Automatic expansion shares the library/summary dark palette. */
+#gToolsDialog{background:#20272e;color:#e1ecee;border-color:#647a83;color-scheme:dark}
+#gToolsDialog input,#gToolsDialog select,#gToolsDialog textarea{background:#131e23;color:#e1ecee;border:1px solid #52696d;box-sizing:border-box;border-radius:6px;min-width:0}
+#gToolsDialog button{background:#325e59;color:#edf8f7;min-height:38px}
+#gToolsDialog p{color:#b9cbce}#gToolsDialog #gAutoError{color:#ffb8b8;margin:6px 0}
+#gToolsDialog.g-auto-dialog[open]{display:flex;flex-direction:column;overflow:hidden;width:min(760px,calc(100vw - 24px));max-width:calc(100vw - 24px);max-height:calc(100dvh - 32px);padding:0}
+.g-auto-dialog .g-tools-head{flex:none;padding:14px 18px;border-bottom:1px solid #43555b;gap:10px}
+#gToolsDialog.g-auto-dialog h2{font-size:18px}.g-auto-body{padding:10px 18px;overflow:auto;min-height:0;flex:1}.g-auto-body h3{font-size:14px;margin:8px 0;color:#a9d7cf}
+#gToolsDialog .g-auto-row{display:grid;grid-template-columns:minmax(0,1fr) 135px 38px;align-items:center;gap:8px;margin:8px 0;min-width:0}
+#gToolsDialog .g-auto-row button{margin:0;padding:5px;font-size:22px}
+#gToolsDialog .g-auto-rate{display:flex;align-items:center;gap:5px;margin:0;color:#b9cbce;font-size:12px}
+.g-auto-rate input{width:100%;height:40px}.g-item-combo{position:relative;min-width:0;display:flex;align-items:center;gap:6px}
+.g-item-combo>img{width:28px;height:28px;object-fit:contain}.g-item-combo>input{height:40px;flex:1;width:0!important}.g-item-combo select[hidden]{display:none}
+.g-combo-list{position:absolute;top:100%;left:0;right:0;z-index:2;max-height:200px;overflow:auto;background:#162b30;border:1px solid #6aa69b;border-radius:6px;box-shadow:0 6px 14px #0007}
+.g-combo-list [role=option],.g-combo-list>span{padding:9px;cursor:pointer;overflow-wrap:anywhere}.g-combo-list [role=option]:hover,.g-combo-list [aria-selected=true]{background:#325e59}
+.g-auto-body details{margin:10px 0;color:#b9cbce}.g-auto-body summary{cursor:pointer;padding:5px 0}#gAutoRecipes{max-height:none;overflow:visible;border-color:#43555b}
+.g-auto-footer{flex:none;padding:10px 18px;border-top:1px solid #43555b;background:#20272e}#gToolsDialog #gAutoGenerate{display:block;width:100%;margin:0;background:#4f8b7c;font-weight:700}
+@media(max-width:480px){.g-auto-dialog .g-tools-head{padding:10px 12px}.g-auto-body{padding:8px 12px}#gToolsDialog.g-auto-dialog h2{font-size:16px}#gToolsDialog .g-auto-row{grid-template-columns:minmax(0,1fr) 38px;gap:5px}.g-auto-row .g-item-combo{grid-column:1 / -1}.g-auto-row .g-auto-rate{grid-column:1}.g-auto-row .g-auto-rate input{max-width:150px}.g-auto-footer{padding:10px 12px}}
+
+#gToolsDialog .g-combo-native{position:absolute;width:1px;height:1px;min-height:0;padding:0;opacity:0;pointer-events:none}
+
+#gToolsDialog .g-auto-rate{white-space:nowrap}.g-item-combo::after{content:"⌄";position:absolute;right:10px;pointer-events:none;color:#a9d7cf}.g-item-combo>input{padding-right:32px!important}
