@@ -230,6 +230,8 @@ function previewNodes(){
  for(const label of $('gLabels').children){if(label.classList.contains('g-waypoint'))continue;const delta=offsets.get(label.dataset.source);if(delta){label.style.left=(+label.dataset.anchorX+delta.x)+'px';label.style.top=(+label.dataset.anchorY+delta.y)+'px';}}
  for(const path of $('gLines').children){const a=offsets.get(path.dataset.source),b=offsets.get(path.dataset.target);if(!a&&!b)continue;
   const route=JSON.parse(path.dataset.route);for(let i=0;i<route.length;i++){const delta=i<2?a:i>=route.length-2?b:null;if(delta){route[i].x+=delta.x;route[i].y+=delta.y;}}
+  // Moved ends shift only their stubs; re-square the joints so drag previews never draw diagonals.
+  if(g.lineStyle!=='curve')route.splice(0,route.length,...orthogonalRoute(route));
   const start=JSON.parse(path.dataset.start),end=JSON.parse(path.dataset.end);
   if(a){start.x+=a.x;start.y+=a.y;}if(b){end.x+=b.x;end.y+=b.y;}
   path.setAttribute('d',routedPath(route,start,JSON.parse(path.dataset.waypoints||'[]'),end,+path.dataset.clearance||40));
