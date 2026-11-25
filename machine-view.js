@@ -28,11 +28,12 @@ function build(g,result,d,capacity){
   total=r.used/unit;
  }
  const baseClock=n.type==='recipe'?(recipe?.modularMiner?Math.min(n.clock||100,100):(n.clock||100)):100;
- const cs=n.physical?[n.clock]:total!==null&&Number.isFinite(total)&&total>=0?clocks(total*baseClock/100,g.machineClockMode,recipe?.modularMiner?100:250):[baseClock];
+ const frac=g.machineClockMode==='nominal'&&!n.physical&&n.type==='recipe'&&total!==null&&Number.isFinite(total)&&total>0;
+ const cs=frac?[baseClock]:n.physical?[n.clock]:total!==null&&Number.isFinite(total)&&total>=0?clocks(total*baseClock/100,g.machineClockMode,recipe?.modularMiner?100:250):[baseClock];
  const count=cs.length;
  if(nodes.length+count>5000)throw Error('기계별 표시 한도 5,000개를 초과했습니다. 토글을 꺼서 합친 그래프를 보세요.');
- const list=[];for(let i=0;i<count;i++){const value=total===null?null:(total===0?0:cs[i]/baseClock),weight=total>0?value/total:1/count,id=i===0?n.id:uid(),p={...n,id,sourceId:n.id,part:i,parts:count};
- if(total!==null&&!n.physical){p.max=total===0?0:1;p.clock=cs[i];p.shards=Math.max(0,Math.ceil((cs[i]-100-1e-8)/50));p.machineClock=cs[i];p.maxExact=undefined;p.autoRound=false;p.showPpm=n.type==='resource';p.machineFraction=total===0?0:1;if(resourceMachine)p.extractionMachineName=resourceMachine.name;p.supplyRate=n.type==='resource'?value*unit:undefined;if(n.type==='resource')p.max=p.supplyRate;}
+ const list=[];for(let i=0;i<count;i++){const value=total===null?null:(total===0?0:frac?total:cs[i]/baseClock),weight=total>0?value/total:1/count,id=i===0?n.id:uid(),p={...n,id,sourceId:n.id,part:i,parts:count};
+ if(total!==null&&!n.physical){p.max=total===0?0:1;p.clock=cs[i];p.shards=Math.max(0,Math.ceil((cs[i]-100-1e-8)/50));p.machineClock=cs[i];p.maxExact=undefined;p.autoRound=false;p.showPpm=n.type==='resource';p.machineFraction=total===0?0:1;if(resourceMachine)p.extractionMachineName=resourceMachine.name;if(frac){p.max=total;p.machineFraction=total;}p.supplyRate=n.type==='resource'?value*unit:undefined;if(n.type==='resource')p.max=p.supplyRate;}
  if(n.physical){p.machineClock=n.clock;p.machineFraction=n.max;p.shards=n.shards??Math.max(0,Math.ceil((n.clock-100-1e-8)/50));}const row=r?{...r,id,used:total!==null?(n.type==='resource'?value*unit:value):r.used,input:r.input.map(a=>scale(a,weight)),output:r.output.map(a=>scale(a,weight)),power:r.power*weight,exactUsed:undefined}:null;
  if(row&&n.physical){Object.assign(row,r,{id});if(n.type==='resource'&&resourceMachine)row.power=resourceMachine.power*Math.pow(n.clock/100,resourceMachine.exponent??1.321928)*(n.clock>0?n.max/(unit*n.clock/100):0);}if(row&&total!==null&&!n.physical){const b=machine||resourceMachine,ex=b?.exponent??1.321928;row.power=total===0?0:b&&n.type==='resource'?b.power*Math.pow(cs[i]/100,ex):r.power*weight*Math.pow(cs[i]/baseClock,ex-1);}
  if(row)outRows.push(row);nodes.push(p);list.push({node:p,row,weight});}parts.set(n.id,list);
@@ -73,7 +74,7 @@ function build(g,result,d,capacity){
   }
  }
  const summary={...result.summary,warnings:result.summary.warnings.filter(w=>!w.includes('오버클럭/파워 샤드 해금 정보 없음')),shards:nodes.reduce((s,n)=>s+(n.shards||0),0)};
- summary.machines=nodes.reduce((sum,n)=>sum+(n.machineClock>0?(n.physical?(n.type==='resource'?n.max/((n.extractionRate||(/water|oil/i.test(n.item)?120:60))*n.clock/100):n.max):1):0),0);
+ summary.machines=nodes.reduce((sum,n)=>sum+(n.machineClock>0?(n.physical?(n.type==='resource'?n.max/((n.extractionRate||(/water|oil/i.test(n.item)?120:60))*n.clock/100):n.max):(n.machineFraction>0?n.machineFraction:1)):0),0);
  summary.power=outRows.reduce((s,r)=>s+(r.power||0),0);summary.netPower=summary.generatedPower==null?null:summary.generatedPower-summary.power;
  // Overclocking is always available; save unlock flags are unreliable in SF+.
  if(nodes.some(n=>n.type==='resource'&&n.machineClock!==undefined))summary.warnings.push('원료 공급: 기본 Miner Mk.1 보통 순도 60/분, 물·원유 추출기 120/분 기준 (기존 공급 노드에 채굴 티어·순도 정보 없음).');
