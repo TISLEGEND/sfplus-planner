@@ -49,7 +49,7 @@ T.graph=[
  {el:'#gCanvas',t:'단축키 모음',b:'<ul><li><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd>: 되돌리기 / 다시</li><li><kbd>Ctrl</kbd>+<kbd>C</kbd> <kbd>X</kbd> <kbd>V</kbd>: 복사·잘라내기·붙여넣기</li><li><kbd>Ctrl</kbd>+<kbd>A</kbd>: 전체 선택, <kbd>Delete</kbd>: 삭제</li><li><kbd>Ctrl</kbd>+<kbd>S</kbd>: 저장, <kbd>Tab</kbd>: 메뉴</li></ul><p><b>중요:</b> 되돌리기 기록은 창을 닫으면 사라져요. 큰 작업 전엔 설계 설정 → 파일로 내보내기로 백업해 두세요.</p>'}
 ];
 T.go3d=[
- {el:'#viewer3dTab',t:'04 세이브 3D',b:'<p>내 세이브 파일을 넣으면 실제 게임 모델과 지형 위에 공장을 3D로 둘러볼 수 있어요. 새 탭으로 열리고, 거기서 도움말 버튼을 누르면 3D 사용법이 나와요.</p><p>파일은 내 컴퓨터 안에서만 읽고 어디로도 올리지 않아요.</p>'}
+ {el:'#viewer3dTab',t:'세이브 3D',b:'<p>내 세이브 파일을 넣으면 실제 게임 모델과 지형 위에 공장을 3D로 둘러볼 수 있어요. 새 탭으로 열리고, 거기서 도움말 버튼을 누르면 3D 사용법이 나와요.</p><p>파일은 내 컴퓨터 안에서만 읽고 어디로도 올리지 않아요.</p>'}
 ];
 T.v3d=[
  {el:'#viewport',t:'세이브 3D',b:'<p>세이브 속 건물을 게임 모델 그대로, 맵 지형 위에 다시 세운 화면이에요.</p><ul><li>좌클릭 드래그: 회전 (찍은 곳 중심)</li><li>우클릭 드래그 / <kbd>Shift</kbd>+드래그: 이동</li><li>휠: 확대·축소</li><li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>: 보는 방향으로 이동, <kbd>E</kbd>/<kbd>Space</kbd> 위, <kbd>Q</kbd>/<kbd>C</kbd> 아래, <kbd>Shift</kbd> 빠르게</li><li>건물 클릭: 정보 보기</li></ul>'},
