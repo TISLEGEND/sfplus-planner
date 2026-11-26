@@ -12,7 +12,7 @@ function clocks(total,mode='overclock',limit=250){
  return Array(count).fill(total/count*100);
 }
 function build(g,result,d,capacity){
- if(g.expandMachines===false){const nodes=g.nodes.map(n=>({...n}));repairPositions(nodes,result.nodes);return {nodes,edges:result.edges,result};}
+ if(g.expandMachines===false){const nodes=g.nodes.map(n=>({...n}));return {nodes,edges:result.edges,result};}
  const rows=new Map(result.nodes.map(n=>[n.id,n])),parts=new Map(),nodes=[],outRows=[];
  let serial=0;const ids=new Set(g.nodes.map(n=>n.id));const uid=()=>{let id;do{id='machine-view-'+serial++;}while(ids.has(id));ids.add(id);return id;};
  // Consumers are visited before their suppliers, including disconnected components and cycles.
@@ -81,16 +81,16 @@ function build(g,result,d,capacity){
  // Once a layout exists, keep it: saved machines stay put and new/unsaved machines start at their source node (where the user placed it).
  const hadSaved=!!g.machinePositions&&Object.keys(g.machinePositions).length>0,sourceBy=new Map(g.nodes.map(n=>[n.id,n]));
  for(const n of nodes){const saved=g.machinePositions?.[n.sourceId+':'+n.part];if(saved){n.x=saved.x;n.y=saved.y;n.center=false;n._fixed=true;}else if(hadSaved&&n.type!=='group'){const sib=nodes.filter(m=>m!==n&&m.sourceId===n.sourceId&&g.machinePositions?.[m.sourceId+':'+m.part]).sort((a,b)=>(b.part||0)-(a.part||0))[0],sp=sib&&g.machinePositions[sib.sourceId+':'+sib.part],base=sourceBy.get(n.sourceId);if(sp){n.x=sp.x;n.y=sp.y+((n.part||0)-(sib.part||0))*260;n.center=false;}else if(base&&Number.isFinite(base.x)&&Number.isFinite(base.y)){n.x=base.x;n.y=base.y+(n.part||0)*260;n.center=!!base.center;}}}
- // Saved machines are repaired only among themselves; unsaved machines move around them, never the other way.
+ // Saved machines never move; only unsaved machines avoid actual box overlaps.
  repairPositions(nodes,outRows);for(const n of nodes)delete n._fixed;
  return {nodes,edges,result:{...result,summary,nodes:outRows,edges}};
 }
 function repairPositions(nodes,rows){
  const by=new Map(rows.map(r=>[r.id,r])),placed=[],order=[...nodes.filter(n=>n._fixed),...nodes.filter(n=>!n._fixed)];
- for(const n of order){const r=by.get(n.id),w=n.type==='resource'?210:240,h=Math.max(44,(r?.input.length||0)*24,(r?.output.length||0)*24)+100;
+ for(const n of order){const r=by.get(n.id),w=n.type==='resource'?210:240,h=Math.max(44,(r?.input.length||0)*24,(r?.output.length||0)*24)+46+(root.SFLogistics?.storage(n)?18:0);
  let x=n.x-(n.center?w/2:0),y=n.y-(n.center?h/2:0);
- for(;;){const hit=placed.find(p=>p.parent===(n.parent||null)&&x<p.x+p.w+32&&x+w+32>p.x&&y<p.y+p.h+32&&y+h+32>p.y);if(!hit)break;y=hit.y+hit.h+32;}
- n.x=x;n.y=y;n.center=false;placed.push({x,y,w,h,parent:n.parent||null});
+ if(!n._fixed){for(;;){const hit=placed.find(p=>p.parent===(n.parent||null)&&x<p.x+p.w&&x+w>p.x&&y<p.y+p.h&&y+h>p.y);if(!hit)break;y=hit.y+hit.h;}
+ n.x=x;n.y=y;n.center=false;}placed.push({x,y,w,h,parent:n.parent||null});
  }
 }
 function scale(p,w){const out={...p};for(const k of ['amount','flow','shortage','surplus'])if(typeof out[k]==='number')out[k]*=w;for(const k of Object.keys(out))if(k.startsWith('exact'))delete out[k];return out;}

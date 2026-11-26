@@ -80,27 +80,21 @@ const createChannelJobs=()=>channelEdges.flatMap(edge=>{const n=pos.get(project(
 const channelKey=()=>JSON.stringify({boxes:[...pos.values()].map(n=>({...origin(n),w:width(n),h:height(n)})),jobs:createChannelJobs(),gap:8});
 const cachedKey=channelKey();
 if(channelCache?.key===cachedKey){for(const [id,route] of channelCache.routes)channelRoutes.set(id,route);}else{
-for(let attempt=0;;attempt++){
- const jobs=createChannelJobs();
- const router=new window.SFChannelRouter.Router([...pos.values()].map(n=>({...origin(n),w:width(n),h:height(n)})),jobs,8);
- try{channelRoutes.clear();for(const job of jobs)channelRoutes.set(job.id,router.route(job.a,job.b,job.waypoints,job.id));break;}
+// Routing is geometry-only: congestion must never rewrite user positions.
+const jobs=createChannelJobs(),boxes=[...pos.values()].map(n=>({...origin(n),w:width(n),h:height(n)}));
+const router=new window.SFChannelRouter.Router(boxes,jobs,8);
+for(const [index,job] of jobs.entries()){
+ try{channelRoutes.set(job.id,router.route(job.a,job.b,job.waypoints,job.id));}
  catch(error){
-  // A narrow or overlapping layout is repaired as a whole, never by dropping an edge.
-  const columns=[...new Set([...pos.values()].map(n=>n.x))].sort((a,b)=>a-b),left=columns[0]||0;
-  const rows=[...pos.values()].sort((a,b)=>a.y-b.y||a.x-b.x),placed=[];
-  for(const n of rows){n.x=left+columns.indexOf(n.x)*(560+attempt*80);n.y*=1.15;for(const other of placed)if(n.x<other.x+width(other)+64&&n.x+width(n)+64>other.x&&n.y<other.y+height(other)+64&&n.y+height(n)+64>other.y)n.y=other.y+height(other)+64;placed.push(n);n.center=false;
-   if(g.expandMachines!==false){g.machinePositions??={};g.machinePositions[n.sourceId+':'+n.part]={x:n.x,y:n.y};}else{const source=g.nodes.find(a=>a.id===n.id);if(source){source.x=n.x;source.y=n.y;source.center=false;}}
-   const box=[...$('gNodes').children].find(e=>e.dataset.id===n.id);if(box){box.style.left=n.x+'px';box.style.top=n.y+'px';}
+  // Keep every edge, even when ports/stubs are trapped inside nearby boxes.
+  // Exterior lanes may cross boxes or other lines in an overlapping layout.
+  const y=Math.min(job.a.y,job.b.y,...boxes.map(b=>b.y),...job.waypoints.map(p=>p.y))-32-index*8;
+  const stops=[job.a,...job.waypoints,job.b],route=[job.a];
+  for(let i=1;i<stops.length;i++){
+   const a=stops[i-1],b=stops[i],sx=a.x+16,tx=b.x-16;
+   route.push({x:sx,y:a.y},{x:sx,y},{x:tx,y},{x:tx,y:b.y},b);
   }
-  if(attempt>=7){
-   // Last resort: give every node its own wide column and every edge an exterior lane.
-   // Rebuild ALL routes against the final positions so no stale or partial path survives.
-   const gap=8,stride=512+(jobs.length+1)*gap*4;
-   rows.forEach((n,index)=>{n.x=left+index*stride;n.y=index*stride;n.center=false;if(g.expandMachines!==false)g.machinePositions[n.sourceId+':'+n.part]={x:n.x,y:n.y};else Object.assign(g.nodes.find(a=>a.id===n.id),{x:n.x,y:n.y,center:false});const box=[...$('gNodes').children].find(e=>e.dataset.id===n.id);box.style.left=n.x+'px';box.style.top=n.y+'px';});
-   const finalJobs=createChannelJobs(),allocator=new window.SFChannelRouter.Router([],finalJobs,gap);channelRoutes.clear();
-   finalJobs.forEach((job,index)=>{const {a,b}=allocator.jobs.get(job.id),sx=a.x+32+index*gap,tx=b.x-32-index*gap,y=-64-index*gap;channelRoutes.set(job.id,[a,{x:sx,y:a.y},{x:sx,y},{x:tx,y},{x:tx,y:b.y},b]);});
-   status('혼잡한 연결의 노드 간격을 넓혀 외곽 레인으로 우회했습니다.',true);break;
-  }
+  channelRoutes.set(job.id,route);
  }
 }
 channelCache={key:channelKey(),routes:new Map(channelRoutes)};
