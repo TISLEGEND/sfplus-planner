@@ -1,4 +1,4 @@
-import * as T from './viewer3d-vendor/three.module.js?v=20261128-1515';
+import * as T from './viewer3d-vendor/three.module.js?v=20261128-1610';
 // 좌표: 세이브·게임은 UE(왼손, cm). 화면은 UE (X,-Y,Z) m 로 거울 변환해 오른손 three.js 에서도 지도와 같은 방향으로 보이게 한다.
 const $=id=>document.getElementById(id),status=$('status'),vp=$('viewport');
 const renderer=new T.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
@@ -151,7 +151,7 @@ $('nodes').onchange=()=>{nodesMesh.visible=$('nodes').checked;needsRender=true;}
 $('low').onclick=()=>{low=!low;$('low').textContent=`저사양 모드: ${low?'켬':'끔'}`;$('low').setAttribute('aria-pressed',String(low));renderer.setPixelRatio(low?Math.min(devicePixelRatio,1):Math.min(devicePixelRatio,1.5));resize();rebuild();updateTerrainLod(true);};
 async function loadFile(file){if(!file||!file.name.toLowerCase().endsWith('.sav')){status.textContent='.sav 파일을 선택하세요.';return;}if(file.size>128*1024*1024){status.textContent='128MB 이하 세이브를 사용하세요.';return;}
  const id=++loadId;worker?.terminate();status.textContent='브라우저 안에서 세이브를 읽는 중…';const bytes=await file.arrayBuffer();if(id!==loadId)return;
- worker=new Worker('./viewer3d-vendor/save-parser.worker.js?v=20261128-1515');const timer=setTimeout(()=>{if(id===loadId){worker.terminate();worker=null;status.textContent='파싱 시간이 초과되었습니다. 이전 화면을 유지합니다.';}},60000);
+ worker=new Worker('./viewer3d-vendor/save-parser.worker.js?v=20261128-1610');const timer=setTimeout(()=>{if(id===loadId){worker.terminate();worker=null;status.textContent='파싱 시간이 초과되었습니다. 이전 화면을 유지합니다.';}},60000);
  worker.onmessage=({data:msg})=>{if(id!==loadId)return;if(msg.result){clearTimeout(timer);worker.terminate();worker=null;setupData(msg.result);}else if(msg.error){clearTimeout(timer);worker.terminate();worker=null;status.textContent=msg.error;}else if(msg.progress!=null)status.textContent=`로컬 파싱 ${Math.min(100,Math.round(msg.progress*100))}%`;};worker.onerror=e=>{clearTimeout(timer);worker?.terminate();worker=null;status.textContent='파서 오류: '+e.message;};worker.postMessage({name:file.name,bytes,dimensions:catalogue.dimensions},[bytes]);}
 $('saveFile').onchange=()=>loadFile($('saveFile').files[0]);let dragDepth=0;window.addEventListener('dragenter',e=>{e.preventDefault();dragDepth++;$('drop').hidden=false;});window.addEventListener('dragover',e=>e.preventDefault());window.addEventListener('dragleave',()=>{if(--dragDepth<=0){dragDepth=0;$('drop').hidden=true;}});window.addEventListener('drop',e=>{e.preventDefault();dragDepth=0;$('drop').hidden=true;loadFile(e.dataTransfer.files[0]);});
 async function loadModels(){const [meta,res]=await Promise.all([fetch('data/viewer3d-models.json').then(r=>r.json()),fetch('data/viewer3d-models.bin.gz')]);if(!res.ok)throw Error('models '+res.status);

@@ -2,7 +2,7 @@
 (()=>{
 'use strict';
 const is3D=location.pathname.endsWith('viewer3d.html'),SEEN='sfp-help-v1-seen'+(is3D?'-3d':'');
-if(!document.querySelector('link[href^="help.css"]')){const l=document.createElement('link');l.rel='stylesheet';l.href='help.css?v=20261128-1515';document.head.append(l);}
+if(!document.querySelector('link[href^="help.css"]')){const l=document.createElement('link');l.rel='stylesheet';l.href='help.css?v=20261128-1610';document.head.append(l);}
 
 const $=s=>document.querySelector(s);
 const byText=(sel,txt)=>()=>[...document.querySelectorAll(sel)].find(e=>e.textContent.includes(txt)&&visible(e));
